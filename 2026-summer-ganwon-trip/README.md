@@ -2,7 +2,7 @@
 
 2026년 8월 27일(목) ~ 30일(일) 가족 여행 숙소를 8문항 취향 테스트로 골라주는 정적 페이지.
 
-- 주소: https://dev-glennn.github.io/playground/ganwon-trip/
+- 주소: [https://dev-glennn.github.io/playground/ganwon-trip/](https://dev-glennn.github.io/playground/2026-summer-ganwon-trip/)
 - 후보 6곳: 한화리조트 설악(쏘라노) · 소노벨 델피노 · 쏠비치 양양 · 카시아 속초 · 강릉 세인트존스 · 포타라카 낙산비치
 - 8개 취향 축(물놀이 / 오션뷰 / 관광 / 온천·스파 / 감성·사진 / 미식·카페 / 정숙·힐링 / 편의·취사)의 가중치를 계산해 순위를 냅니다.
 - 서버 저장 없음. 결과는 8자리 코드로 공유하고, `가족 결과 모아보기`에 코드를 모아 붙여넣으면 전원 가중치를 평균해 합산 결과를 계산합니다.
