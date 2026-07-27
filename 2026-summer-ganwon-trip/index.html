@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>우리 가족 강원도 숙소 찾기 · 여행 취향 테스트</title>
+<meta name="description" content="8문항으로 알아보는 우리 가족 여행 취향. 강원도 숙소 6곳 중 나에게 딱 맞는 곳은?">
+<meta property="og:title" content="우리 가족 강원도 숙소 찾기">
+<meta property="og:description" content="8문항이면 끝! 나는 어떤 여행 유형일까?">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preload" as="font" type="font/woff" crossorigin href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/Cafe24Ssurround.woff">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Regular.woff2">
+<style>
+/* ─────────────────────────────────────────────
+   폰트 (출처: 눈누 noonnu.cc · 모두 상업적 이용 가능)
+   · 제목  : 카페24 써라운드   https://noonnu.cc/font_page/669
+   · 본문  : 프리텐다드        https://noonnu.cc/font_page/694
+   제목 폰트를 바꾸고 싶으면 아래 --f-cute 값만 교체하세요.
+   대안 1) 학교안심 둥근미소  https://noonnu.cc/font_page/1479
+   대안 2) 페이퍼로지         https://noonnu.cc/font_page/1456
+   ───────────────────────────────────────────── */
+@font-face{
+  font-family:'Cafe24Surround';
+  src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/Cafe24Ssurround.woff') format('woff');
+  font-weight:normal; font-display:swap;
+}
+@font-face{
+  font-family:'HakgyoansimDunggeunmiso';
+  src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-5@1.0/HakgyoansimDunggeunmisoTTF-B.woff2') format('woff2');
+  font-weight:700; font-display:swap;
+}
+@font-face{
+  font-family:'Pretendard';
+  src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Regular.woff2') format('woff2');
+  font-weight:400; font-display:swap;
+}
+@font-face{
+  font-family:'Pretendard';
+  src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Medium.woff2') format('woff2');
+  font-weight:500; font-display:swap;
+}
+@font-face{
+  font-family:'Pretendard';
+  src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Bold.woff2') format('woff2');
+  font-weight:700; font-display:swap;
+}
+  :root{
+    --f-cute:'Cafe24Surround','HakgyoansimDunggeunmiso','Pretendard',-apple-system,sans-serif;
+    --f-body:'Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    --pink:#FF8FA3; --pink-d:#E56A80; --pink-l:#FFE4E9;
+    --mint:#6FCFC2; --mint-l:#DFF4F1;
+    --butter:#FFC65C; --butter-l:#FFF0D2;
+    --lav:#B2A0E8; --lav-l:#ECE6FB;
+    --sky:#8FC5EF; --sky-l:#E2F0FB;
+    --ink:#4E453C; --ink2:#8A7F73; --ink3:#B4A99C;
+    --cream:#FFFAF3; --card:#FFFFFF; --line:#F2E4D8;
+    --shadow:0 6px 0 rgba(78,69,60,.07), 0 14px 28px rgba(78,69,60,.07);
+    --shadow-sm:0 3px 0 rgba(78,69,60,.06), 0 8px 18px rgba(78,69,60,.06);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    font-family:var(--f-body);
+    color:var(--ink); line-height:1.7; letter-spacing:-.15px; padding:0 0 70px;
+    background:
+      radial-gradient(560px 380px at 8% -4%, var(--pink-l) 0%, transparent 62%),
+      radial-gradient(520px 360px at 96% 8%, var(--mint-l) 0%, transparent 60%),
+      radial-gradient(600px 420px at 50% 100%, var(--butter-l) 0%, transparent 60%),
+      var(--cream);
+    background-attachment:fixed;
+  }
+  h1,h2,h3,.jua,.big{font-family:var(--f-cute); font-weight:400; letter-spacing:-.2px;}
+  h1 b,h2 b,h3 b,.pwho b,.chip b,.cands b,.rank.top .nm2,.pill .v,.codebox .code,
+  .restype,.resname,.pnum,.tinytitle,.badge,button{font-weight:400;}
+  b,strong{font-weight:700;}
+  .wrap{max-width:560px; margin:0 auto; padding:0 18px;}
+  .screen{display:none;} .screen.on{display:block; animation:pop .4s cubic-bezier(.2,.9,.3,1.2);}
+  @keyframes pop{from{opacity:0; transform:translateY(14px) scale(.98);} to{opacity:1; transform:none;}}
+
+  /* ── 타이틀 ── */
+  .hero{text-align:center; padding:38px 0 14px;}
+  .hero .badge{
+    display:inline-block; background:#fff; border:2.5px solid var(--pink-l); color:var(--pink-d);
+    font-family:var(--f-cute); font-size:13.5px; padding:5px 15px; border-radius:30px; box-shadow:var(--shadow-sm);
+  }
+  .hero h1{font-size:31px; margin:14px 0 6px; line-height:1.32; color:var(--ink);}
+  .hero h1 em{font-style:normal; color:var(--pink-d);}
+  .hero p{margin:0; font-size:14px; color:var(--ink2);}
+  .stickers{font-size:30px; letter-spacing:6px; margin:16px 0 0; line-height:1;}
+
+  /* ── 카드 ── */
+  .card{
+    background:var(--card); border:2.5px solid var(--line); border-radius:26px;
+    padding:24px 22px; margin-bottom:16px; box-shadow:var(--shadow);
+  }
+  .card h2{font-size:19px; margin:0 0 12px;}
+  .card p{margin:0 0 12px; font-size:15px;}
+  .card p:last-child{margin-bottom:0;}
+  .muted{color:var(--ink2); font-size:13.5px;}
+  .tinytitle{font-family:var(--f-cute); font-size:13px; color:var(--pink-d); margin:0 0 8px;}
+
+  /* ── 입력 / 버튼 ── */
+  label.nm{display:block; font-family:var(--f-cute); font-size:14px; color:var(--ink2); margin:16px 0 7px;}
+  input[type=text], textarea{
+    width:100%; padding:14px 16px; font-size:16px; font-family:inherit; color:var(--ink);
+    border:2.5px solid var(--line); border-radius:16px; background:#FFFDFA; outline:none;
+    transition:border-color .18s, box-shadow .18s;
+  }
+  textarea{min-height:104px; resize:vertical; line-height:1.6; font-size:14.5px;}
+  input[type=text]:focus, textarea:focus{border-color:var(--pink); box-shadow:0 0 0 4px var(--pink-l);}
+  button{font-family:var(--f-cute); cursor:pointer; border:none; letter-spacing:.2px;}
+  .btn{
+    display:block; width:100%; padding:16px; font-size:17.5px; border-radius:20px;
+    background:var(--pink); color:#fff; box-shadow:0 5px 0 var(--pink-d);
+    transition:transform .1s, box-shadow .1s;
+  }
+  .btn:active{transform:translateY(4px); box-shadow:0 1px 0 var(--pink-d);}
+  .btn.mint{background:var(--mint); box-shadow:0 5px 0 #4FAFA2;}
+  .btn.mint:active{box-shadow:0 1px 0 #4FAFA2;}
+  .btn.lav{background:var(--lav); box-shadow:0 5px 0 #8E79CF;}
+  .btn.lav:active{box-shadow:0 1px 0 #8E79CF;}
+  .btn.ghost{background:#fff; color:var(--ink2); border:2.5px solid var(--line); box-shadow:0 4px 0 #EFE0D2;}
+  .btn.ghost:active{box-shadow:0 1px 0 #EFE0D2;}
+  .btn.sm{padding:13px; font-size:15px; border-radius:16px;}
+  .btnrow{display:flex; gap:10px;}
+  .btnrow .btn{margin:0;}
+  .gap{height:12px;}
+
+  /* ── 진행바 ── */
+  .prog{margin:26px 0 18px;}
+  .ptop{display:flex; justify-content:space-between; align-items:center; margin-bottom:9px;}
+  .pwho{font-family:var(--f-cute); font-size:14px; color:var(--ink2);}
+  .pwho b{color:var(--pink-d);}
+  .pnum{font-family:var(--f-cute); font-size:14px; color:var(--ink3);}
+  .pbar{height:14px; background:#fff; border:2.5px solid var(--line); border-radius:20px; padding:2.5px;}
+  .pfill{height:100%; width:0%; border-radius:20px; background:linear-gradient(90deg,var(--butter),var(--pink)); transition:width .4s cubic-bezier(.3,.9,.3,1);}
+
+  /* ── 질문 ── */
+  .qcard{background:var(--card); border:2.5px solid var(--line); border-radius:28px; padding:26px 22px 22px; box-shadow:var(--shadow);}
+  .qmark{font-size:34px; text-align:center; line-height:1; margin-bottom:6px;}
+  .qtext{font-family:var(--f-cute); font-size:21.5px; text-align:center; line-height:1.5; margin:0 0 22px;}
+  .opt{
+    display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+    font-family:var(--f-body); font-size:15.5px; color:var(--ink); line-height:1.5;
+    background:#fff; border:2.5px solid var(--line); border-radius:19px; padding:14px 16px;
+    margin-bottom:11px; transition:transform .12s, border-color .15s, background .15s;
+  }
+  .opt:hover{transform:translateY(-2px);}
+  .opt:active{transform:translateY(1px);}
+  .opt .em{
+    flex:none; width:32px; height:32px; border-radius:50%; display:grid; place-items:center;
+    font-family:var(--f-cute); font-size:15px; color:#fff;
+  }
+  .opt:nth-child(1) .em{background:var(--pink);} .opt:nth-child(1):hover{border-color:var(--pink); background:#FFF7F8;}
+  .opt:nth-child(2) .em{background:var(--mint);} .opt:nth-child(2):hover{border-color:var(--mint); background:#F6FDFC;}
+  .opt:nth-child(3) .em{background:var(--butter);} .opt:nth-child(3):hover{border-color:var(--butter); background:#FFFCF4;}
+  .opt:nth-child(4) .em{background:var(--lav);} .opt:nth-child(4):hover{border-color:var(--lav); background:#FAF8FE;}
+  .back{background:none; color:var(--ink3); font-size:14px; padding:12px 0 0; width:100%; text-align:center;}
+
+  /* ── 결과 ── */
+  .rescard{
+    background:var(--card); border:3px solid var(--pink-l); border-radius:30px;
+    padding:0 0 24px; overflow:hidden; box-shadow:var(--shadow); margin-bottom:16px;
+  }
+  .restop{background:linear-gradient(160deg,#FFF1F4,#FFF8EC); padding:26px 22px 22px; text-align:center; border-bottom:2.5px dashed var(--line);}
+  .resface{font-size:64px; line-height:1; margin-bottom:6px;}
+  .restype{font-family:var(--f-cute); font-size:15px; color:var(--pink-d); margin:0;}
+  .resname{font-family:var(--f-cute); font-size:27px; margin:6px 0 8px; line-height:1.3;}
+  .resline{font-size:14.5px; color:var(--ink2); margin:0;}
+  .resbody{padding:20px 22px 0;}
+  .hotelname{font-family:var(--f-cute); font-size:21px; margin:0 0 4px;}
+  .hotelloc{font-size:13.5px; color:var(--ink2); margin:0 0 14px;}
+  .pill{display:inline-flex; align-items:baseline; gap:8px; background:var(--mint-l); border-radius:16px; padding:10px 15px; margin-bottom:14px; flex-wrap:wrap;}
+  .pill .l{font-size:12.5px; color:#3F857B;}
+  .pill .v{font-family:var(--f-cute); font-size:18px; color:#2E7268;}
+  ul.pros{margin:0 0 14px; padding:0; list-style:none;}
+  ul.pros li{font-size:14.5px; margin-bottom:9px; padding-left:24px; position:relative;}
+  ul.pros li:before{content:'♥'; position:absolute; left:2px; top:0; color:var(--pink); font-size:13px;}
+  .warnbox{background:#FFF4EC; border:2px solid #FBE0CB; border-radius:16px; padding:12px 15px; font-size:13.5px; color:#9A6237;}
+  .playbox{background:var(--sky-l); border-radius:16px; padding:13px 15px; font-size:14px; color:#3C6A8C; margin-top:12px;}
+
+  /* ── 순위 ── */
+  .rank{display:flex; align-items:center; gap:9px; margin-bottom:12px;}
+  .rank .medal{flex:none; width:26px; text-align:center; font-size:15px;}
+  .rank .nm2{width:126px; flex:none; font-size:13px; line-height:1.35;}
+  .rank .bar{flex:1; height:20px; background:#F6EEE6; border-radius:12px; overflow:hidden;}
+  .rank .fill{height:100%; width:0; border-radius:12px; background:#DFD3C6; transition:width .8s cubic-bezier(.2,.9,.3,1);}
+  .rank.top .fill{background:linear-gradient(90deg,var(--butter),var(--pink));}
+  .rank.top .nm2{font-family:var(--f-cute); font-size:13.5px; color:var(--pink-d);}
+  .rank .sc{flex:none; width:40px; text-align:right; font-family:var(--f-cute); font-size:13.5px; color:var(--ink2);}
+  @media(max-width:430px){ .rank .nm2{width:96px; font-size:12px;} }
+
+  /* ── 칩 ── */
+  .chips{display:flex; flex-wrap:wrap; gap:7px;}
+  .chip{background:var(--lav-l); color:#5E4E96; border-radius:20px; padding:6px 13px; font-size:13px;}
+  .chip b{font-family:var(--f-cute); color:var(--pink-d);}
+  .chip.on{background:var(--pink-l); color:var(--pink-d);}
+
+  /* ── 코드 박스 ── */
+  .codebox{
+    background:#FFFDF6; border:2.5px dashed var(--butter); border-radius:18px;
+    padding:16px; text-align:center; margin-bottom:12px;
+  }
+  .codebox .lbl{font-size:12.5px; color:var(--ink2); margin:0 0 6px;}
+  .codebox .code{font-family:var(--f-cute); font-size:25px; letter-spacing:3px; color:var(--ink); margin:0; word-break:break-all;}
+
+  /* ── 가족 표 ── */
+  table.ppl{width:100%; border-collapse:collapse; font-size:14px;}
+  table.ppl th{font-family:var(--f-cute); font-size:12.5px; color:var(--ink3); text-align:left; padding:0 5px 8px; font-weight:400;}
+  table.ppl td{padding:10px 5px; border-top:2px dotted var(--line);}
+  table.ppl td.f{font-size:22px; width:32px;}
+  table.ppl td.n{font-family:var(--f-cute); font-size:14px;}
+  table.ppl td.t{font-size:13px; color:var(--ink2);}
+
+  .toast{
+    position:fixed; left:50%; bottom:26px; transform:translate(-50%,20px);
+    background:var(--ink); color:#fff; font-family:var(--f-cute); font-size:14.5px;
+    padding:12px 22px; border-radius:30px; opacity:0; pointer-events:none;
+    transition:opacity .25s, transform .25s; z-index:99;
+  }
+  .toast.on{opacity:1; transform:translate(-50%,0);}
+  .foot{font-size:12px; color:var(--ink3); line-height:1.7; text-align:center; margin-top:22px;}
+  .dashed{border:none; border-top:2.5px dashed var(--line); margin:18px 0;}
+  .cands{font-size:14px;}
+  .cands div{padding:9px 0; border-top:2px dotted var(--line);}
+  .cands div:first-child{border-top:none;}
+  .cands b{font-family:var(--f-cute); font-size:15px;}
+
+  .cands span{color:var(--ink2); font-size:12.5px;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<!-- ══════════ INTRO ══════════ -->
+<section id="s-intro" class="screen on">
+  <div class="hero">
+    <span class="badge">2026. 8. 27 ~ 8. 30 · 강원도</span>
+    <h1>우리 가족<br><em>여행 취향 테스트</em></h1>
+    <p>8문항이면 끝! 나에게 딱 맞는 숙소는?</p>
+    <div class="stickers">🏖️ ♨️ 🏄 ☕ 🌅</div>
+  </div>
+
+  <div class="card">
+    <p class="tinytitle">이렇게 골라줘요</p>
+    <p style="font-size:14.5px;">답변에 따라 <b>물놀이 · 오션뷰 · 관광 · 온천 · 감성 · 미식 · 정숙 · 편의</b> 8가지 취향 점수가 만들어지고, 그 점수로 후보 5곳의 순위를 계산해요.</p>
+    <label class="nm">이름을 알려주세요</label>
+    <input type="text" id="who" placeholder="이름을 입력해주세요" autocomplete="off" maxlength="10">
+    <div class="gap"></div>
+    <button class="btn" onclick="startQuiz()">테스트 시작하기</button>
+    <div class="gap"></div>
+    <button class="btn ghost sm" onclick="show('s-collect')">가족 결과 모아보기</button>
+  </div>
+
+  <div class="card">
+    <p class="tinytitle">후보는 이 6곳</p>
+    <div class="cands" id="candList"></div>
+  </div>
+  <p class="foot">결과는 서버에 저장되지 않아요. 끝나면 <b>결과 코드</b>가 나오니 가족 단톡방에 보내주세요.</p>
+</section>
+
+<!-- ══════════ QUIZ ══════════ -->
+<section id="s-quiz" class="screen">
+  <div class="prog">
+    <div class="ptop"><span class="pwho" id="pwho"></span><span class="pnum" id="pnum"></span></div>
+    <div class="pbar"><div class="pfill" id="pfill"></div></div>
+  </div>
+  <div class="qcard">
+    <div class="qmark" id="qmark"></div>
+    <p class="qtext" id="qtext"></p>
+    <div id="opts"></div>
+    <button class="back" id="backBtn" onclick="goBack()">← 이전 질문</button>
+  </div>
+</section>
+
+<!-- ══════════ RESULT ══════════ -->
+<section id="s-result" class="screen">
+  <div class="rescard">
+    <div class="restop">
+      <div class="resface" id="rFace"></div>
+      <p class="restype" id="rWho"></p>
+      <h2 class="resname" id="rType"></h2>
+      <p class="resline" id="rLine"></p>
+    </div>
+    <div class="resbody">
+      <p class="tinytitle">나에게 딱 맞는 숙소</p>
+      <p class="hotelname" id="rName"></p>
+      <p class="hotelloc" id="rLoc"></p>
+      <div class="pill" id="rPill"></div>
+      <ul class="pros" id="rPros"></ul>
+      <div class="warnbox" id="rWarn"></div>
+      <div class="playbox" id="rPlay"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>전체 순위</h2>
+    <div id="ranks"></div>
+  </div>
+
+  <div class="card">
+    <h2>내 취향 지도</h2>
+    <div class="chips" id="chipsBox"></div>
+    <p class="muted" style="margin-top:12px;" id="chipsNote"></p>
+  </div>
+
+  <div class="card">
+    <p class="tinytitle">가족에게 결과 보내기</p>
+    <div class="codebox">
+      <p class="lbl">내 결과 코드</p>
+      <p class="code" id="rCode"></p>
+    </div>
+    <button class="btn mint sm" onclick="copyShare()">단톡방에 보낼 메시지 복사</button>
+    <div class="gap"></div>
+    <button class="btn ghost sm" onclick="copyLink()">내 결과 링크 복사</button>
+    <p class="muted" style="margin-top:12px;">가족 4명 코드가 모이면 <b>가족 결과 모아보기</b>에서 한 번에 합산할 수 있어요.</p>
+  </div>
+
+  <div class="btnrow">
+    <button class="btn ghost sm" onclick="retry()">다시 하기</button>
+    <button class="btn lav sm" onclick="show('s-collect')">가족 결과 모아보기</button>
+  </div>
+</section>
+
+<!-- ══════════ COLLECT ══════════ -->
+<section id="s-collect" class="screen">
+  <div class="hero" style="padding:34px 0 10px;">
+    <h1 style="font-size:26px;">가족 결과 모아보기</h1>
+    <p>단톡방에 올라온 메시지를 그대로 붙여넣으세요</p>
+    <div class="stickers" style="font-size:26px;">👩 👨 🧑 🧒</div>
+  </div>
+  <div class="card">
+    <textarea id="pasteBox" placeholder="엄마: BACDBACD
+아빠: ABCDABCD
+딸: CBDACBDA
+아들: DACBDACB
+
+(단톡방 메시지를 통째로 붙여넣어도 코드만 알아서 골라내요)"></textarea>
+    <div class="gap"></div>
+    <button class="btn" onclick="mergeFamily()">합산 결과 보기</button>
+    <div class="gap"></div>
+    <button class="btn ghost sm" onclick="show('s-intro')">처음으로</button>
+  </div>
+</section>
+
+<!-- ══════════ FAMILY ══════════ -->
+<section id="s-family" class="screen">
+  <div class="rescard">
+    <div class="restop" style="background:linear-gradient(160deg,#EFF9F7,#FFF8EC);">
+      <div class="resface" id="fFace"></div>
+      <p class="restype" id="fWho"></p>
+      <h2 class="resname" id="fName"></h2>
+      <p class="resline" id="fLoc"></p>
+    </div>
+    <div class="resbody">
+      <p class="tinytitle">가족 종합 1순위</p>
+      <div class="pill" id="fPill"></div>
+      <ul class="pros" id="fPros"></ul>
+      <div class="warnbox" id="fWarn"></div>
+      <div class="playbox" id="fPlay"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>가족 종합 순위</h2>
+    <div id="fRanks"></div>
+    <p class="muted" style="margin-top:10px;">참여한 가족 전원의 취향 점수를 평균해서 계산했어요.</p>
+  </div>
+
+  <div class="card">
+    <h2>누가 뭘 골랐나</h2>
+    <table class="ppl" id="pplTable"></table>
+    <hr class="dashed">
+    <p id="conflict" style="font-size:14px; margin:0;"></p>
+  </div>
+
+  <div class="card">
+    <p class="tinytitle">이 합산 결과 공유하기</p>
+    <button class="btn mint sm" onclick="copyFamilyLink()">가족 결과 링크 복사</button>
+    <p class="muted" style="margin-top:12px;">링크에 모든 코드가 담겨 있어서, 받은 사람도 같은 결과를 그대로 볼 수 있어요.</p>
+  </div>
+
+  <div class="btnrow">
+    <button class="btn ghost sm" onclick="show('s-collect')">코드 수정</button>
+    <button class="btn ghost sm" onclick="show('s-intro')">처음으로</button>
+  </div>
+
+  <p class="foot">
+    금액은 2026년 7월 기준 공개 요금·패키지를 근거로 한 추정 범위예요. 실제 요금은 예약 시점·객실 등급·회원 여부에 따라 달라져요.<br>
+    8/27(목)~28(금)이 8/29(토)~30(일)보다 저렴하고, 강원 해수욕장은 통상 8월 중·하순 폐장하니 숙소 안 수영장·워터파크 유무를 꼭 확인하세요.
+  </p>
+</section>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════ 취향 축 ═══════════ */
+const AXES = {water:'물놀이', ocean:'오션뷰', sights:'관광', spa:'온천·스파',
+              vibe:'감성·사진', food:'미식·카페', quiet:'정숙·힐링', conv:'편의·취사'};
+const AKEYS = Object.keys(AXES);
+
+/* ═══════════ 숙소 5곳 ═══════════ */
+const HOTELS = [
+ { id:'hanwha', face:'🦭', type:'온천에 몸 담근 물개형',
+   line:'물이랑 온천만 있으면 하루가 순삭! 시설 뽕 뽑는 실용파',
+   name:'한화리조트 설악 (쏘라노)', loc:'속초 장사동 · 설악산 5분 · 바다 차 5분',
+   price:'15~30만원', ptype:'콘도형 · 주방 있음',
+   s:{water:5, ocean:2, sights:5, spa:5, vibe:2, food:3, quiet:2, conv:5},
+   pros:["국내 최상급 워터파크 ‘워터피아’ — 야외 온천 유수풀에 사계절 스파까지",
+         "설악산·울산바위·척산온천 접근성이 5곳 중 제일 좋아요",
+         "객실에 주방이 있어서 어른 4명 연박·취사가 편해요"],
+   warn:'바다가 도보권이 아니고 오션뷰 객실이 거의 없어요. 본관은 연식이 좀 있어요.',
+   play:'설악산 케이블카·권금성 · 울산바위 · 속초 중앙시장 오징어튀김 · 아바이마을 갯배 · 척산온천'
+ },
+ { id:'delpino', face:'🐿️', type:'다 갖고 싶은 욕심쟁이 다람쥐형',
+   line:'물놀이도 온천도 관광도 포기 못 해! 알차게 다 챙기는 스타일',
+   name:'소노벨 델피노', loc:'고성 토성면 · 속초 북측 · 봉포·천진해변 인접',
+   price:'20~45만원', ptype:'소노캄·소노문 업그레이드 가능',
+   s:{water:4, ocean:3, sights:5, spa:5, vibe:3, food:3, quiet:3, conv:5},
+   pros:["객실 ↔ 워터파크 ↔ 온천이 실내 통로로 연결돼서 날씨 걱정 제로",
+         "오션플레이 온천수 스파, 실내풀에서 설악산·바다뷰 감상",
+         "설악산과 속초 시내 딱 중간 — 관광 동선이 가장 편해요"],
+   warn:'소노벨(C그룹)은 뷰·객실이 최상급은 아니에요. 소노캄이나 소노문으로 올리는 걸 추천해요.',
+   play:'설악산 국립공원 · 고성 왕곡마을 · 화진포 · 봉포·천진해변 · 속초 아바이마을'
+ },
+ { id:'solbeach', face:'🐦', type:'인생샷 찍는 갈매기형',
+   line:'예쁘지 않으면 의미 없다! 뷰와 분위기를 제일 사랑하는 타입',
+   name:'쏠비치 양양', loc:'양양 강현면 · 낙산해변 정면 · 프라이빗 비치',
+   price:'35~60만원', ptype:'스위트 오션뷰 다수',
+   s:{water:4, ocean:5, sights:4, spa:3, vibe:5, food:4, quiet:3, conv:4},
+   pros:["오션뷰 + 물놀이 + 감성을 한 곳에서 — 종합 만족도 1순위",
+         "안달루시아풍 건축·조경, 프라이빗 비치, 오션플레이 양양 워터파크",
+         "낙산사·서피비치·죽도해변까지 차로 15분 안쪽"],
+   warn:'8월 말까지 성수기 요금과 혼잡이 이어져요. 전망 객실은 1박 22,000원 추가예요.',
+   play:'서피비치 노을 · 서핑 체험 레슨(2시간 5~8만원) · 낙산사·의상대 · 죽도해변 비치카페 · 하조대'
+ },
+ { id:'cassia', face:'🦩', type:'럭셔리 아니면 안 되는 홍학형',
+   line:'돈은 쓰더라도 후회 없게! 뷰·조식·루프탑까지 다 좋아야 하는 타입',
+   name:'카시아 속초', loc:'속초 대포항 도보 2분 · 외옹치해변 차 2분 · 전 객실 오션뷰',
+   price:'45~70만원', ptype:'반얀그룹 5성급 674실 · 주방·발코니',
+   s:{water:3, ocean:4, sights:5, spa:4, vibe:5, food:5, quiet:2, conv:4},
+   pros:["674실 전 객실 오션뷰 + 욕조·주방·발코니 완비 — 6곳 중 객실 스펙 최상",
+         "인피니티풀·실내풀·키즈풀에 사우나·노천탕·루프탑 바까지",
+         "대포항 회센터가 도보 2분, 설악산·속초 시내도 코앞이라 미식 동선이 최고"],
+   warn:'수영장이 대인 60,000원 별도이고 성수기엔 5부제로 운영돼요. 조식도 성인 66,000원으로 비싸고 674실 대형이라 붐빌 수 있어요.',
+   play:'대포항 회센터·오징어순대 · 외옹치 바다향기로 · 속초해수욕장 · 설악산 케이블카 · 속초 중앙시장 · 루프탑 바 노을'
+ },
+ { id:'stjohns', face:'🦉', type:'커피 없인 못 사는 부엉이형',
+   line:'바다 보며 커피, 밤엔 야경! 도시 감성 놓치기 싫은 미식가',
+   name:'강릉 세인트존스 호텔', loc:'강릉 강문해변 정면 · 경포해변 도보 10분',
+   price:'25~45만원', ptype:'파인동 · 오션동 · 레이크동',
+   s:{water:3, ocean:5, sights:5, spa:2, vibe:4, food:5, quiet:3, conv:3},
+   pros:["인피니티풀 2개(파인 6F · 오션 16F) — 뷰 만족도 최고",
+         "안목 커피거리·강릉 중앙시장·테라로사까지 차로 10~20분",
+         "도심형이라 미식·카페 투어에 제일 잘 맞아요"],
+   warn:'워터파크가 아니라 수영장 수준이고 대인 40,000원 별도예요. 온천은 약하고 설악산은 1시간 넘어요.',
+   play:'안목 커피거리 스페셜티 커피 · 경포호 산책·자전거 · 강릉 중앙시장 · 오죽헌 · 정동진'
+ },
+ { id:'potalaka', face:'🐢', type:'해 뜰 때 일어나는 거북이형',
+   line:'북적임은 사양합니다. 조용히 쉬고 제대로 재충전하는 타입',
+   name:'포타라카 낙산비치 웰니스 호텔', loc:'양양 낙산해변 정면 · 낙산사 도보권',
+   price:'20~35만원', ptype:'2026. 7. 1 오픈 · 전 객실급 오션뷰',
+   s:{water:1, ocean:5, sights:4, spa:4, vibe:4, food:3, quiet:5, conv:3},
+   pros:["낙산사가 운영하는 국내 유일 불교 웰니스 호텔 — 시설이 가장 최신",
+         "해수사우나 + 명상·요가 프로그램, 사찰음식 기반 웰빙 조식",
+         "의상대·홍련암 일출이 도보권, 전 객실급 오션뷰"],
+   warn:'수영장·워터파크가 없어요. 물놀이를 원한다면 여긴 아쉬울 수 있어요.',
+   play:'의상대 일출 · 낙산사 산책 · 낙산해수욕장 야간개장(21시까지) · 해수사우나 · 서피비치'
+ }
+];
+
+/* ═══════════ 질문 8개 ═══════════ */
+const QUESTIONS = [
+ { m:'🌅', q:'여행 첫날 아침, 눈 뜨면 제일 먼저 하고 싶은 건?',
+   o:[ {t:'창문 활짝 열고 바다 보며 커피 한 잔', w:{ocean:3, vibe:1}},
+       {t:'수영복 갈아입고 곧장 물로 직행', w:{water:3}},
+       {t:'뜨끈한 온천에 몸부터 담그기', w:{spa:3}},
+       {t:'조용히 산책하면서 하루 열기', w:{quiet:3, ocean:1}} ] },
+ { m:'😱', q:'“이번 여행 망했다” 싶은 순간은 언제?',
+   o:[ {t:'사진이 하나도 예쁘게 안 나왔을 때', w:{vibe:3}},
+       {t:'하루 종일 숙소에만 갇혀 있었을 때', w:{sights:3}},
+       {t:'사람이 너무 많아 정신없었을 때', w:{quiet:3}},
+       {t:'맛있는 걸 하나도 못 먹었을 때', w:{food:3}} ] },
+ { m:'👨‍👩‍👧‍👦', q:'네 명이 같이 있는 시간, 뭐가 제일 좋아?',
+   o:[ {t:'다 같이 물놀이하고 지쳐서 뻗어 잠들기', w:{water:3}},
+       {t:'각자 하고 싶은 거 하다 저녁에 모이기', w:{conv:2, spa:2}},
+       {t:'차 타고 여기저기 부지런히 돌아다니기', w:{sights:3}},
+       {t:'방에서 야경 보며 밤늦게 수다 떨기', w:{ocean:2, quiet:2}} ] },
+ { m:'🍽️', q:'저녁은 어떻게 먹고 싶어?',
+   o:[ {t:'숙소에서 직접 해먹거나 BBQ', w:{conv:3}},
+       {t:'근처 회센터·시장에서 로컬 먹방', w:{food:3, sights:1}},
+       {t:'호텔 뷔페나 레스토랑에서 편하게', w:{vibe:2, conv:1}},
+       {t:'속 편한 웰빙 한 끼면 충분', w:{quiet:3}} ] },
+ { m:'⏰', q:'갑자기 자유시간 3시간! 어디로 갈래?',
+   o:[ {t:'설악산 케이블카·울산바위 보러', w:{sights:3, spa:1}},
+       {t:'해변 산책하고 서핑샵 구경', w:{ocean:3, vibe:1}},
+       {t:'카페거리에서 커피 투어', w:{food:3, vibe:1}},
+       {t:'아무 데도 안 감. 숙소 풀에서 뒹굴기', w:{water:2, spa:2}} ] },
+ { m:'💝', q:'부모님이 제일 좋아하실 것 같은 건?',
+   o:[ {t:'뜨끈한 온천과 사우나', w:{spa:3}},
+       {t:'절·일출 같은 정취 있는 곳', w:{quiet:3, ocean:1}},
+       {t:'시원한 바다가 보이는 방', w:{ocean:3}},
+       {t:'넓고 편한 방, 그리고 주방', w:{conv:3}} ] },
+ { m:'💸', q:'돈은 어디에 써야 제일 안 아까워?',
+   o:[ {t:'방이 좋으면 값은 얼마든 괜찮아', w:{vibe:2, ocean:2}},
+       {t:'숙소는 적당히, 먹는 데 투자', w:{food:2, conv:2}},
+       {t:'시설 실컷 쓰는 게 남는 거지', w:{water:2, spa:2}},
+       {t:'아끼고 조용히 푹 쉬는 게 최고', w:{quiet:2, conv:1}} ] },
+ { m:'🎯', q:'이번 여행 목표를 한 줄로 정한다면?',
+   o:[ {t:'인생 사진 남기기', w:{vibe:3}},
+       {t:'물놀이 실컷 하기', w:{water:3}},
+       {t:'푹 쉬고 재충전하기', w:{spa:2, quiet:2}},
+       {t:'강원도 제대로 훑고 오기', w:{sights:3, food:1}} ] }
+];
+
+const LETTERS = 'ABCD';
+const MEDALS = ['🥇','🥈','🥉','4','5'];
+
+/* ═══════════ 상태 ═══════════ */
+let idx = 0, picks = [], me = '', myList = null, family = [];
+
+/* ═══════════ 유틸 ═══════════ */
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('on'), 2000);
+}
+function copy(text, msg){
+  const done = ()=>toast(msg);
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(done, ()=>fallback());
+  } else fallback();
+  function fallback(){
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); done(); }
+    catch(e){ prompt('아래 내용을 복사해 주세요', text); }
+    document.body.removeChild(ta);
+  }
+}
+const encode = p => p.map(i=>LETTERS[i]).join('');
+const decode = s => s.toUpperCase().split('').map(c=>LETTERS.indexOf(c));
+
+/* ═══════════ 계산 ═══════════ */
+function weightsFrom(picks){
+  const w = {}; AKEYS.forEach(k=>w[k]=0.4);
+  picks.forEach((pi,qi)=>{
+    const add = QUESTIONS[qi] && QUESTIONS[qi].o[pi] ? QUESTIONS[qi].o[pi].w : null;
+    if(add) for(const k in add) w[k] += add[k];
+  });
+  return w;
+}
+function scoreHotels(w){
+  const tot = AKEYS.reduce((a,k)=>a+w[k],0);
+  return HOTELS.map(h=>({h, sc: AKEYS.reduce((a,k)=>a + w[k]*h.s[k], 0)/tot}))
+               .sort((a,b)=>b.sc-a.sc);
+}
+const topAxes = (w,n) => AKEYS.slice().sort((a,b)=>w[b]-w[a]).slice(0,n);
+
+/* ═══════════ 후보 목록 ═══════════ */
+document.getElementById('candList').innerHTML = HOTELS.map(h=>
+  `<div><b>${h.face} ${h.name}</b><br><span>${h.loc} · 1박 4인 ${h.price}</span></div>`).join('');
+
+/* ═══════════ 퀴즈 ═══════════ */
+function startQuiz(){
+  me = (document.getElementById('who').value || '').trim() || '나';
+  idx = 0; picks = []; show('s-quiz'); renderQ();
+}
+function renderQ(){
+  const q = QUESTIONS[idx];
+  document.getElementById('pfill').style.width = (idx/QUESTIONS.length*100)+'%';
+  document.getElementById('pwho').innerHTML = '<b>'+esc(me)+'</b> 님의 취향은?';
+  document.getElementById('pnum').textContent = (idx+1)+' / '+QUESTIONS.length;
+  document.getElementById('qmark').textContent = q.m;
+  document.getElementById('qtext').textContent = q.q;
+  document.getElementById('opts').innerHTML = q.o.map((o,i)=>
+    `<button class="opt" onclick="choose(${i})"><span class="em">${LETTERS[i]}</span><span>${o.t}</span></button>`).join('');
+  document.getElementById('backBtn').style.display = idx===0 ? 'none' : 'block';
+}
+function choose(i){
+  picks[idx] = i;
+  if(idx < QUESTIONS.length-1){ idx++; renderQ(); }
+  else { document.getElementById('pfill').style.width='100%'; setTimeout(finish, 250); }
+}
+function goBack(){ if(idx>0){ idx--; renderQ(); } }
+function retry(){ idx=0; picks=[]; show('s-quiz'); renderQ(); }
+const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ═══════════ 순위 렌더 ═══════════ */
+function ranksHTML(list){
+  const max = list[0].sc;
+  return list.map((r,i)=>`
+    <div class="rank ${i===0?'top':''}">
+      <div class="medal">${MEDALS[i]}</div>
+      <div class="nm2">${r.h.name.replace(' (쏘라노)','').replace(' 웰니스 호텔',' 웰니스')}</div>
+      <div class="bar"><div class="fill" data-w="${(r.sc/max*100).toFixed(1)}"></div></div>
+      <div class="sc">${r.sc.toFixed(2)}</div>
+    </div>`).join('');
+}
+function animateBars(){
+  requestAnimationFrame(()=>document.querySelectorAll('.fill').forEach(f=>{ f.style.width = f.dataset.w+'%'; }));
+}
+function pillHTML(h, sc){
+  return `<span class="l">1박 4인</span><span class="v">${h.price}</span>
+          <span class="l">${h.ptype}</span>
+          <span class="l" style="width:100%">취향 적합도 <b style="font-family:var(--f-cute)">${sc.toFixed(2)}</b> / 5.00</span>`;
+}
+
+/* ═══════════ 개인 결과 ═══════════ */
+function finish(){
+  const w = weightsFrom(picks);
+  const list = scoreHotels(w); myList = list;
+  const h = list[0].h;
+
+  document.getElementById('rFace').textContent = h.face;
+  document.getElementById('rWho').textContent = me + ' 님은…';
+  document.getElementById('rType').textContent = h.type;
+  document.getElementById('rLine').textContent = h.line;
+  document.getElementById('rName').textContent = h.name;
+  document.getElementById('rLoc').textContent = h.loc;
+  document.getElementById('rPill').innerHTML = pillHTML(h, list[0].sc);
+  document.getElementById('rPros').innerHTML = h.pros.map(p=>`<li>${p}</li>`).join('');
+  document.getElementById('rWarn').innerHTML = '<b>이건 알아두기</b> · ' + h.warn;
+  document.getElementById('rPlay').innerHTML = '<b>주변에서 이건 꼭</b><br>' + h.play;
+  document.getElementById('ranks').innerHTML = ranksHTML(list);
+
+  const tot = AKEYS.reduce((a,k)=>a+w[k],0);
+  const sorted = AKEYS.slice().sort((a,b)=>w[b]-w[a]);
+  document.getElementById('chipsBox').innerHTML = sorted.map((k,i)=>
+    `<span class="chip ${i<3?'on':''}">${AXES[k]} <b>${Math.round(w[k]/tot*100)}%</b></span>`).join('');
+  document.getElementById('chipsNote').textContent =
+    `가장 중요하게 본 건 ${sorted.slice(0,3).map(k=>AXES[k]).join(' · ')} 순이에요.`;
+  document.getElementById('rCode').textContent = me + ': ' + encode(picks);
+
+  show('s-result'); animateBars();
+}
+
+/* ═══════════ 공유 ═══════════ */
+function baseURL(){ return location.origin + location.pathname; }
+function shareText(){
+  const h = myList[0].h;
+  return `[우리 가족 여행 취향 테스트]\n${me} → ${h.face} ${h.type}\n추천 숙소: ${h.name} (${myList[0].sc.toFixed(2)}점)\n\n결과 코드 → ${me}: ${encode(picks)}\n\n너도 해봐 👉 ${baseURL()}`;
+}
+function copyShare(){ copy(shareText(), '메시지를 복사했어요!'); }
+function copyLink(){ copy(baseURL()+'#r='+encodeURIComponent(me+':'+encode(picks)), '결과 링크를 복사했어요!'); }
+function copyFamilyLink(){
+  const s = family.map(p=>p.name+':'+encode(p.picks)).join('|');
+  copy(baseURL()+'#f='+encodeURIComponent(s), '가족 결과 링크를 복사했어요!');
+}
+
+/* ═══════════ 코드 파싱 ═══════════ */
+const N = QUESTIONS.length;
+function parseCodes(text){
+  const out = [];
+  const re = new RegExp('([^\\n:：|,]{1,12})?\\s*[:：]?\\s*\\b([A-Da-d]{'+N+'})\\b','g');
+  let m, i = 0;
+  while((m = re.exec(text)) !== null){
+    i++;
+    let nm = (m[1]||'').replace(/[^가-힣A-Za-z0-9 ]/g,' ').trim().split(/\s+/).pop() || '';
+    if(!nm || /^(결과|코드|결과코드|테스트|숙소|추천)$/.test(nm)) nm = '가족 '+i;
+    out.push({name:nm.slice(0,10), picks:decode(m[2])});
+  }
+  return out;
+}
+
+/* ═══════════ 가족 합산 ═══════════ */
+function mergeFamily(){
+  const list = parseCodes(document.getElementById('pasteBox').value);
+  if(list.length === 0){ toast('코드를 찾지 못했어요 (예: 엄마: BACDBACD)'); return; }
+  family = list; renderFamily();
+}
+function renderFamily(){
+  const ws = family.map(p=>weightsFrom(p.picks));
+  const avg = {}; AKEYS.forEach(k=>avg[k] = ws.reduce((a,w)=>a+w[k],0)/ws.length);
+  const list = scoreHotels(avg); const h = list[0].h;
+
+  document.getElementById('fFace').textContent = h.face;
+  document.getElementById('fWho').textContent = `가족 ${family.length}명이 함께 고른 결과`;
+  document.getElementById('fName').textContent = h.name;
+  document.getElementById('fLoc').textContent = h.loc;
+  document.getElementById('fPill').innerHTML = pillHTML(h, list[0].sc);
+  document.getElementById('fPros').innerHTML = h.pros.map(p=>`<li>${p}</li>`).join('');
+  document.getElementById('fWarn').innerHTML = '<b>이건 알아두기</b> · ' + h.warn;
+  document.getElementById('fPlay').innerHTML = '<b>주변에서 이건 꼭</b><br>' + h.play;
+  document.getElementById('fRanks').innerHTML = ranksHTML(list);
+
+  const tops = [];
+  document.getElementById('pplTable').innerHTML =
+    '<tr><th></th><th>이름</th><th>1순위</th><th>중시 항목</th></tr>' +
+    family.map((p,i)=>{
+      const w = ws[i], L = scoreHotels(w);
+      tops.push(L[0].h.name);
+      return `<tr><td class="f">${L[0].h.face}</td><td class="n">${esc(p.name)}</td>
+        <td class="t">${L[0].h.name.replace(' (쏘라노)','').replace(' 웰니스 호텔',' 웰니스')}</td>
+        <td class="t">${topAxes(w,2).map(k=>AXES[k]).join(', ')}</td></tr>`;
+    }).join('');
+
+  let msg;
+  if(family.length >= 2){
+    const norm = ws.map(w=>{ const t=AKEYS.reduce((a,k)=>a+w[k],0); const o={}; AKEYS.forEach(k=>o[k]=w[k]/t); return o; });
+    let best = null;
+    AKEYS.forEach(k=>{
+      const m = norm.reduce((a,n)=>a+n[k],0)/norm.length;
+      const sd = Math.sqrt(norm.reduce((a,n)=>a+(n[k]-m)**2,0)/norm.length);
+      if(!best || sd > best.sd) best = {k, sd};
+    });
+    const uniq = [...new Set(tops)];
+    const gap = list[0].sc - list[1].sc;
+    msg = `의견이 가장 갈린 항목은 <b style="color:var(--pink-d)">${AXES[best.k]}</b>이에요. ` +
+      (uniq.length === 1
+        ? `그런데 1순위는 전원 <b>${uniq[0]}</b>으로 일치했어요! 바로 예약해도 되겠어요 🎉`
+        : gap < 0.15
+          ? `1위와 2위 점수 차이가 ${gap.toFixed(2)}점밖에 안 되니, <b>2박 중 하루씩 나눠 묵는 것</b>도 좋은 타협안이에요.`
+          : `1순위가 ${uniq.length}갈래로 나뉘었지만 종합 점수는 <b>${h.name}</b>이 확실히 앞서요.`);
+  } else {
+    msg = '두 명 이상 모이면 “의견이 갈린 항목”도 알려드려요.';
+  }
+  document.getElementById('conflict').innerHTML = msg;
+
+  show('s-family'); animateBars();
+}
+
+/* ═══════════ 링크로 들어온 경우 ═══════════ */
+(function fromHash(){
+  const hash = decodeURIComponent(location.hash.replace(/^#/,''));
+  if(!hash) return;
+  const mF = hash.match(/^f=(.*)$/);
+  if(mF){ const l = parseCodes(mF[1].replace(/\|/g,'\n')); if(l.length){ family=l; renderFamily(); } return; }
+  const mR = hash.match(/^r=(.*)$/);
+  if(mR){
+    const l = parseCodes(mR[1]);
+    if(l.length){ me = l[0].name; picks = l[0].picks; finish(); }
+  }
+})();
+
+document.getElementById('who').addEventListener('keydown', e=>{ if(e.key==='Enter') startQuiz(); });
+
+</script>
+</body>
+</html>
