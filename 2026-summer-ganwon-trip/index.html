@@ -515,8 +515,9 @@ const QUESTIONS = [
        {t:'강원도 제대로 훑고 오기', w:{sights:3, food:1}} ] }
 ];
 
+
 const LETTERS = 'ABCD';
-const MEDALS = ['🥇','🥈','🥉','4','5'];
+const MEDALS = ['🥇','🥈','🥉'];
 
 /* ═══════════ 상태 ═══════════ */
 let idx = 0, picks = [], me = '', myList = null, family = [];
@@ -599,7 +600,7 @@ function ranksHTML(list){
   const max = list[0].sc;
   return list.map((r,i)=>`
     <div class="rank ${i===0?'top':''}">
-      <div class="medal">${MEDALS[i]}</div>
+      <div class="medal">${MEDALS[i] || (i+1)}</div>
       <div class="nm2">${r.h.name.replace(' (쏘라노)','').replace(' 웰니스 호텔',' 웰니스')}</div>
       <div class="bar"><div class="fill" data-w="${(r.sc/max*100).toFixed(1)}"></div></div>
       <div class="sc">${r.sc.toFixed(2)}</div>
