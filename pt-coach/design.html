@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>디자인 시안 — 영수증</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/earlyaccess/nanumgothiccoding.css">
+
+<style>
+/* ── 눈누 웹폰트 4종 (전부 웹 임베딩 허용) ────────────────── */
+@font-face{font-family:'DosGothic';
+  src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_eight@1.0/DOSGothic.woff') format('woff');
+  font-weight:normal;font-display:swap}
+@font-face{font-family:'DosStory';
+  src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2304-2@1.0/DOSIyagiMedium.woff2') format('woff2');
+  font-weight:normal;font-display:swap}
+@font-face{font-family:'ThinRounded';
+  src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2511-1@1.0/ThinDungGeunMo.woff2') format('woff2');
+  font-weight:normal;font-display:swap}
+
+:root{
+  --paper:#f3f0e7; --ink:#26231e; --ink-2:#6b655a; --ink-3:#a9a294;
+  --line:#c9c2b2; --hi:#2f6d4f; --warn:#a8442b;
+  --font:'DosGothic'; --fs:15px; --lh:1.62;
+  --w:390px;
+}
+/* 카본지(먹지) 변형 */
+body[data-skin="carbon"]{
+  --paper:#1a1815; --ink:#e6e0d2; --ink-2:#928b7c; --ink-3:#5d574c;
+  --line:#3a352d; --hi:#7dd3a0; --warn:#e08a6a;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:#0e1116; color:var(--ink);
+  font-family:var(--font),'NanumGothicCoding',ui-monospace,monospace;
+  font-size:var(--fs); line-height:var(--lh);
+  display:flex; flex-direction:column; align-items:center;
+  padding:18px 12px 60px; min-height:100vh;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+/* ── 조작 패널 (시안 확인용, 실제 앱엔 안 들어감) ───────────── */
+.controls{width:100%;max-width:var(--w);margin-bottom:18px;color:#8b94a3;font-family:ui-sans-serif,system-ui,sans-serif}
+.controls h1{font-size:15px;margin:0 0 3px;color:#e8ecf2;font-weight:650}
+.controls p{margin:0 0 12px;font-size:12.5px;line-height:1.5}
+.grp{margin-bottom:9px}
+.grp b{display:block;font-size:11px;letter-spacing:.4px;color:#5f6875;margin-bottom:5px;text-transform:uppercase}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chips button{border:1px solid #2a303b;border-radius:8px;padding:6px 10px;font-size:12.5px;color:#8b94a3;background:#171b22}
+.chips button[aria-pressed=true]{background:#e8ecf2;color:#0e1116;border-color:#e8ecf2}
+.chips button span{font-family:var(--f);font-size:13.5px}
+
+/* ── 영수증 용지 ──────────────────────────────────────────── */
+.receipt{
+  width:100%;max-width:var(--w);background:var(--paper);color:var(--ink);
+  padding:26px 20px 20px;position:relative;
+}
+/* 위·아래 톱니(찢어진) 가장자리 */
+.receipt::before,.receipt::after{
+  content:"";position:absolute;left:0;right:0;height:9px;
+  background:
+    repeating-linear-gradient(-45deg, var(--paper) 0 7px, transparent 7px 14px),
+    repeating-linear-gradient( 45deg, var(--paper) 0 7px, transparent 7px 14px);
+  background-size:14px 9px;
+}
+.receipt::before{top:-8px}
+.receipt::after{bottom:-8px;transform:scaleY(-1)}
+
+.c{text-align:center}
+.r{text-align:right}
+.dim{color:var(--ink-2)}
+.faint{color:var(--ink-3)}
+.tiny{font-size:.8em;line-height:1.5}
+
+/* 점선 · 이중선 구분자 */
+.rule{border:0;border-top:1px dashed var(--line);margin:11px 0}
+.rule.solid{border-top-style:solid}
+.rule.dbl{border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);height:3px;margin:11px 0}
+
+/* 상호 */
+.brand{letter-spacing:.14em;font-size:1.32em;line-height:1.35;margin:0}
+.tagline{letter-spacing:.06em;margin:3px 0 0}
+
+/* 메타 (키 ......... 값) */
+.meta{display:flex;justify-content:space-between;gap:8px;white-space:nowrap}
+.meta .k{color:var(--ink-2)}
+.meta .lead{flex:1;overflow:hidden;color:var(--line)}
+.meta .lead::before{content:"·······································································"}
+
+/* 부위 스탬프 */
+.stamp{
+  display:inline-block;padding:5px 16px 4px;margin:2px 0 4px;
+  border:2px solid var(--ink);letter-spacing:.22em;font-size:1.16em;
+  transform:rotate(-1.2deg);
+}
+.stamp.rot{transform:rotate(1deg)}
+
+/* 종목 블록 */
+.item{margin:13px 0 0}
+.item .no{color:var(--ink-3)}
+.item .nm{letter-spacing:.02em}
+.item .tag{color:var(--ink-2);font-size:.82em;letter-spacing:.05em}
+.setline{display:flex;align-items:baseline;gap:0;white-space:nowrap;padding:1px 0}
+.setline .lbl{width:4.6em;color:var(--ink-2);font-size:.88em;flex:none}
+.setline .wt{width:5.4em;text-align:right;flex:none;font-variant-numeric:tabular-nums}
+.setline .x{width:1.6em;text-align:center;color:var(--ink-3);flex:none}
+.setline .rp{width:3.2em;text-align:right;flex:none;font-variant-numeric:tabular-nums}
+.setline .box{margin-left:auto;padding:0 0 0 10px;flex:none;letter-spacing:-.02em}
+.setline.warm{color:var(--ink-2)}
+.setline.done{color:var(--hi)}
+.note{color:var(--ink-2);font-size:.82em;line-height:1.5;padding:3px 0 0 .2em}
+.note::before{content:"▸ ";color:var(--ink-3)}
+
+/* 합계 */
+.total{display:flex;justify-content:space-between;font-size:1.1em;letter-spacing:.04em}
+.total.big{font-size:1.26em}
+
+/* 바코드 */
+.barcode{height:44px;margin:12px 0 5px;
+  background-image:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px,
+    var(--ink) 4px 5px,transparent 5px 9px,var(--ink) 9px 12px,transparent 12px 13px,
+    var(--ink) 13px 14px,transparent 14px 18px)}
+.barnum{letter-spacing:.34em;font-size:.84em;color:var(--ink-2)}
+
+/* 하단 액션 (실제 앱 버튼) */
+.acts{display:flex;gap:7px;margin-top:14px}
+.acts button{flex:1;border:1px solid var(--line);padding:9px 4px;font-size:.85em;color:var(--ink-2)}
+.acts button.pri{background:var(--ink);color:var(--paper);border-color:var(--ink);letter-spacing:.08em}
+
+/* 절취선 */
+.tear{width:100%;max-width:var(--w);text-align:center;color:#3a4150;letter-spacing:.3em;
+  font-size:12px;padding:12px 0;font-family:ui-monospace,monospace}
+.caption{width:100%;max-width:var(--w);color:#5f6875;font-size:12px;line-height:1.55;
+  font-family:ui-sans-serif,system-ui,sans-serif;margin:4px 0 22px}
+.caption code{color:#8b94a3;background:#171b22;padding:1px 5px;border-radius:4px;font-size:11.5px}
+</style>
+</head>
+<body data-skin="paper">
+
+<div class="controls">
+  <h1>영수증 컨셉 시안</h1>
+  <p>폰트와 용지를 눌러서 바꿔보세요. 마음에 드는 조합을 알려주면 앱 전체에 적용할게요.</p>
+
+  <div class="grp">
+    <b>폰트</b>
+    <div class="chips" id="fonts">
+      <button data-f="DosGothic"        aria-pressed="true"><span style="--f:'DosGothic'">도스고딕</span></button>
+      <button data-f="ThinRounded"      aria-pressed="false"><span style="--f:'ThinRounded'">얇은둥근모</span></button>
+      <button data-f="DosStory"         aria-pressed="false"><span style="--f:'DosStory'">도스이야기</span></button>
+      <button data-f="NanumGothicCoding" aria-pressed="false"><span style="--f:'NanumGothicCoding'">나눔고딕코딩</span></button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <b>용지</b>
+    <div class="chips" id="skins">
+      <button data-s="paper"  aria-pressed="true">감열지 (밝음)</button>
+      <button data-s="carbon" aria-pressed="false">먹지 (어두움)</button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <b>본문 크기</b>
+    <div class="chips" id="sizes">
+      <button data-z="14px" aria-pressed="false">작게</button>
+      <button data-z="15px" aria-pressed="true">보통</button>
+      <button data-z="16.5px" aria-pressed="false">크게</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="receipt">
+
+  <div class="c">
+    <p class="brand">＊ 오늘의 운동 ＊</p>
+    <p class="tagline dim tiny">P T &nbsp; P R E S C R I P T I O N</p>
+  </div>
+
+  <hr class="rule dbl">
+
+  <div class="meta"><span class="k">발행</span><span class="lead"></span><span>2026-07-30 (목)</span></div>
+  <div class="meta"><span class="k">전표</span><span class="lead"></span><span>NO. 00035</span></div>
+  <div class="meta"><span class="k">담당</span><span class="lead"></span><span>김예래 트레이너</span></div>
+  <div class="meta"><span class="k">회원</span><span class="lead"></span><span>조민주</span></div>
+
+  <hr class="rule">
+
+  <div class="c">
+    <div class="stamp">하체 · 힙</div>
+    <p class="tiny dim" style="margin:2px 0 0">57일째 안 나온 부위 · 오늘 차례</p>
+  </div>
+
+  <hr class="rule">
+
+  <div class="item">
+    <div><span class="no">01</span> <span class="nm">레그프레스 (다리 사이 패드)</span></div>
+    <div class="tag">고관절 내전 · 머신</div>
+    <div class="setline warm"><span class="lbl">워밍업</span><span class="wt">9.0씩</span><span class="x">×</span><span class="rp">15</span><span class="box">[ ]</span></div>
+    <div class="setline"><span class="lbl">1세트</span><span class="wt">11.0씩</span><span class="x">×</span><span class="rp">15</span><span class="box">[ ]</span></div>
+    <div class="setline"><span class="lbl">2세트</span><span class="wt">11.0씩</span><span class="x">×</span><span class="rp">15</span><span class="box">[ ]</span></div>
+    <div class="setline"><span class="lbl">3세트</span><span class="wt">11.0씩</span><span class="x">×</span><span class="rp">15</span><span class="box">[ ]</span></div>
+    <div class="note">5/6에 10kg씩 3세트 완주 → 1kg 증량</div>
+  </div>
+
+  <hr class="rule">
+
+  <div class="item">
+    <div><span class="no">02</span> <span class="nm">티바 스쿼트</span></div>
+    <div class="tag">스쿼트 · 바벨</div>
+    <div class="setline warm"><span class="lbl">워밍업</span><span class="wt">18.0</span><span class="x">×</span><span class="rp">15</span><span class="box">[ ]</span></div>
+    <div class="setline done"><span class="lbl">1세트</span><span class="wt">22.0</span><span class="x">×</span><span class="rp">12</span><span class="box">[×]</span></div>
+    <div class="setline"><span class="lbl">2세트</span><span class="wt">22.0</span><span class="x">×</span><span class="rp">12</span><span class="box">[ ]</span></div>
+    <div class="setline"><span class="lbl">3세트</span><span class="wt">22.0</span><span class="x">×</span><span class="rp">12</span><span class="box">[ ]</span></div>
+    <div class="note">4/6에 20kg 3세트 완주 → 2.5kg 증량</div>
+  </div>
+
+  <hr class="rule">
+
+  <div class="item">
+    <div><span class="no">03</span> <span class="nm">스티프 데드리프트</span></div>
+    <div class="tag">힌지 · 바벨</div>
+    <div class="setline warm"><span class="lbl">워밍업</span><span class="wt">14.0</span><span class="x">×</span><span class="rp">15</span><span class="box">[ ]</span></div>
+    <div class="setline"><span class="lbl">1세트</span><span class="wt">16.0</span><span class="x">×</span><span class="rp">15</span><span class="box">[ ]</span></div>
+    <div class="setline"><span class="lbl">2세트</span><span class="wt">16.0</span><span class="x">×</span><span class="rp">15</span><span class="box">[ ]</span></div>
+    <div class="setline"><span class="lbl">3세트</span><span class="wt">16.0</span><span class="x">×</span><span class="rp">15</span><span class="box">[ ]</span></div>
+    <div class="note">4/2에 15kg 3세트 완주 → 1kg 증량</div>
+  </div>
+
+  <hr class="rule">
+
+  <div class="item">
+    <div><span class="no">04</span> <span class="nm">슬라이드 패드 밀기</span></div>
+    <div class="tag">한다리 · 맨몸</div>
+    <div class="setline"><span class="lbl">1세트</span><span class="wt">맨몸</span><span class="x">×</span><span class="rp">17</span><span class="box">[ ]</span></div>
+    <div class="setline"><span class="lbl">2세트</span><span class="wt">맨몸</span><span class="x">×</span><span class="rp">17</span><span class="box">[ ]</span></div>
+    <div class="setline"><span class="lbl">3세트</span><span class="wt">맨몸</span><span class="x">×</span><span class="rp">17</span><span class="box">[ ]</span></div>
+    <div class="note">맨몸 종목 — 지난번 15회에서 횟수 늘리기</div>
+  </div>
+
+  <hr class="rule">
+
+  <div class="item">
+    <div><span class="no">05</span> <span class="nm">레그 익스텐션</span></div>
+    <div class="tag">무릎 신전 · 머신</div>
+    <div class="setline warm"><span class="lbl">워밍업</span><span class="wt">20.0</span><span class="x">×</span><span class="rp">15</span><span class="box">[ ]</span></div>
+    <div class="setline"><span class="lbl">1세트</span><span class="wt">25.0</span><span class="x">×</span><span class="rp">12</span><span class="box">[ ]</span></div>
+    <div class="setline"><span class="lbl">2세트</span><span class="wt">25.0</span><span class="x">×</span><span class="rp">12</span><span class="box">[ ]</span></div>
+    <div class="setline"><span class="lbl">3세트</span><span class="wt">25.0</span><span class="x">×</span><span class="rp">12</span><span class="box">[ ]</span></div>
+    <div class="note">3/31에 25kg 2세트만 → 같은 무게로 3세트</div>
+  </div>
+
+  <hr class="rule dbl">
+
+  <div class="total dim"><span>종목</span><span>5</span></div>
+  <div class="total dim"><span>총 세트</span><span>19</span></div>
+  <div class="total big"><span>총 볼륨</span><span>3,822 kg</span></div>
+  <p class="tiny faint" style="margin:2px 0 0">＊ 무게 × 횟수 × 세트 합계 · 씩 표기는 한쪽 기준</p>
+
+  <hr class="rule">
+
+  <div class="meta tiny"><span class="k">지난 하체 대비</span><span class="lead"></span><span style="color:var(--hi)">＋ 6.2 %</span></div>
+  <div class="meta tiny"><span class="k">누적 세션</span><span class="lead"></span><span>35 회</span></div>
+
+  <div class="acts">
+    <button>🎲 다시</button>
+    <button>＋ 종목</button>
+    <button class="pri">저장</button>
+  </div>
+
+  <hr class="rule solid">
+
+  <div class="c">
+    <p class="tiny dim" style="margin:0">교환·환불 불가 · 근육통은 정상입니다</p>
+    <div class="barcode"></div>
+    <p class="barnum" style="margin:0">2026 0730 LOWER 035</p>
+  </div>
+
+</div>
+
+<div class="tear">- - - - - - - - - - ✂ - - - - - - - - - -</div>
+
+<div class="caption">
+  화면은 <code>하체·힙</code> 실제 추천 결과예요. 총 볼륨은 무게×횟수×세트 합계입니다.<br>
+  체크박스 <code>[ ]</code>는 실제로는 눌러서 <code>[×]</code>로 바뀌고, 무게·횟수 숫자는 탭하면 바로 고칠 수 있게 만들 거예요.
+</div>
+
+<script>
+(function(){
+  var b=document.body, root=document.documentElement;
+  function bind(id, attr, apply){
+    document.getElementById(id).addEventListener('click', function(e){
+      var t=e.target.closest('button'); if(!t) return;
+      this.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed', x===t);});
+      apply(t.dataset[attr]);
+    });
+  }
+  bind('fonts','f', function(v){ root.style.setProperty('--font', "'"+v+"'"); });
+  bind('skins','s', function(v){ b.dataset.skin=v; });
+  bind('sizes','z', function(v){ root.style.setProperty('--fs', v); });
+
+  document.querySelectorAll('.setline .box').forEach(function(el){
+    el.parentElement.addEventListener('click', function(){
+      var on=el.textContent.indexOf('×')>=0;
+      el.textContent = on ? '[ ]' : '[×]';
+      this.classList.toggle('done', !on);
+    });
+  });
+})();
+</script>
+</body>
+</html>

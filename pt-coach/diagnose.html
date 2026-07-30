@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>연결 진단</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/earlyaccess/nanumgothiccoding.css">
+<style>
+@font-face{font-family:'ThinRounded';
+  src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2511-1@1.0/ThinDungGeunMo.woff2') format('woff2');
+  font-weight:normal;font-display:swap}
+:root{
+  --paper:#f3f0e7; --paper-2:#eae6da; --ink:#26231e; --ink-2:#6b655a; --ink-3:#a9a294;
+  --line:#c9c2b2; --ok:#2f6d4f; --ok-bg:#e2ecdf; --bad:#a8442b; --bad-bg:#f3e2dc;
+  --warn:#8a6a1f;
+  --disp:'ThinRounded','NanumGothicCoding',ui-monospace,monospace;
+  --body:'NanumGothicCoding',ui-monospace,monospace;
+  --w:430px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:#0e1116;color:var(--ink);font-family:var(--disp);font-size:15.5px;line-height:1.62;
+  display:flex;flex-direction:column;align-items:center;padding:14px 10px 50px;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input{font:inherit;color:inherit}
+.paper{width:100%;max-width:var(--w);background:var(--paper);padding:24px 18px 18px;position:relative}
+.paper::before,.paper::after{content:"";position:absolute;left:0;right:0;height:9px;
+  background:repeating-linear-gradient(-45deg,var(--paper) 0 7px,transparent 7px 14px),
+             repeating-linear-gradient(45deg,var(--paper) 0 7px,transparent 7px 14px);
+  background-size:14px 9px}
+.paper::before{top:-8px}
+.paper::after{bottom:-8px;transform:scaleY(-1)}
+.c{text-align:center}
+.dim{color:var(--ink-2)}
+.tiny{font-size:.8em;line-height:1.5}
+.sans{font-family:var(--body)}
+hr.rule{border:0;border-top:1px dashed var(--line);margin:10px 0}
+hr.rule.dbl{border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);height:3px;margin:11px 0}
+.brand{letter-spacing:.14em;font-size:1.28em;margin:0}
+.meta{display:flex;justify-content:space-between;gap:6px;white-space:nowrap;overflow:hidden}
+.meta .k{color:var(--ink-2);flex:none}
+.meta .lead{flex:1;overflow:hidden;color:var(--line);min-width:12px}
+.meta .lead::before{content:"·······································································"}
+.meta .v{flex:none;overflow:hidden;text-overflow:ellipsis;max-width:60%}
+.field{margin-top:9px}
+.field label,label{display:block;font-size:.78em;color:var(--ink-2);letter-spacing:.04em}
+input{width:100%;background:var(--paper-2);border:1px solid var(--line);padding:9px 10px;
+  font-family:var(--disp);font-size:1em}
+input:focus{outline:0;border-color:var(--ink)}
+button.go{width:100%;margin-top:14px;background:var(--ink);color:var(--paper);
+  border:1px solid var(--ink);padding:11px;letter-spacing:.12em}
+button.go:disabled{opacity:.45}
+.step{padding:8px 0 7px;border-bottom:1px dashed var(--line)}
+.step .t{display:flex;gap:7px;align-items:baseline}
+.step .t .ic{flex:none}
+.step.pass .ic{color:var(--ok)}
+.step.fail .ic{color:var(--bad)}
+.step.warn .ic{color:var(--warn)}
+.step .m{font-family:var(--body);font-size:.78em;color:var(--ink-2);margin-top:3px;
+  white-space:pre-wrap;word-break:break-word}
+pre{background:var(--paper-2);border:1px solid var(--line);padding:10px;overflow-x:auto;
+  font-family:var(--body);font-size:.74em;line-height:1.6;margin:9px 0 0;white-space:pre-wrap;
+  word-break:break-all}
+code{background:var(--paper-2);padding:0 4px}
+.verdict{padding:11px 12px;margin:12px 0 0;font-family:var(--body);font-size:.82em;line-height:1.6;
+  border:1px solid}
+.verdict.good{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.verdict.bad{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+.verdict b{display:block;font-family:var(--disp);font-size:1.15em;margin-bottom:5px;letter-spacing:.04em}
+.barcode{height:36px;margin:11px 0 4px;
+  background-image:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px,
+    var(--ink) 4px 5px,transparent 5px 9px,var(--ink) 9px 12px,transparent 12px 13px,
+    var(--ink) 13px 14px,transparent 14px 18px)}
+.barnum{letter-spacing:.3em;font-size:.78em;color:var(--ink-2);margin:0}
+.tear{width:100%;max-width:var(--w);text-align:center;color:#39404e;letter-spacing:.3em;
+  font-size:11px;padding:11px 0 0;font-family:ui-monospace,monospace}
+.hidden{display:none}
+</style>
+</head>
+<body>
+
+<div class="paper">
+  <div class="c">
+    <p class="brand">＊ 연 결 진 단 ＊</p>
+    <p class="tiny dim" style="margin:3px 0 0;letter-spacing:.055em">S Y S T E M &nbsp; C H E C K</p>
+  </div>
+
+  <hr class="rule dbl">
+
+  <div id="keyinfo"></div>
+
+  <hr class="rule">
+
+  <div id="form">
+    <div class="field">
+      <label for="email">이메일 (앱에서 만든 계정)</label>
+      <input id="email" type="email" autocomplete="username" placeholder="me@example.com">
+    </div>
+    <div class="field">
+      <label for="pw">비밀번호</label>
+      <input id="pw" type="password" autocomplete="current-password">
+    </div>
+    <button class="go" id="run">진 단 시 작</button>
+  </div>
+
+  <div id="out"></div>
+
+  <hr class="rule">
+  <div class="c">
+    <p class="tiny dim" style="margin:0">이 페이지는 로컬 점검용입니다</p>
+    <div class="barcode"></div>
+    <p class="barnum">D I A G N O S E</p>
+  </div>
+</div>
+
+<div class="tear">- - - - - - - - - ✂ - - - - - - - - -</div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(function(){
+  "use strict";
+  const $ = s => document.querySelector(s);
+  const cfg = window.PT_CONFIG || {};
+
+  // 대시보드 URL에는 /rest/v1 같은 경로가 붙어오기 쉽다. supabase-js는 경로를
+  // 스스로 붙이므로 루트만 남겨야 한다. 안 그러면 "Invalid path specified in request URL".
+  function normalizeUrl(raw){
+    let u = String(raw||"").trim();
+    if(!u) return "";
+    u = u.replace(/^http:\/\//,"https://");
+    if(!/^https?:\/\//.test(u)) u = "https://"+u;
+    try{ const p = new URL(u); return p.protocol+"//"+p.host; }
+    catch(_){ return u.replace(/\/+$/,""); }
+  }
+  const RAW_URL = cfg.SUPABASE_URL || "";
+  const URL_ = normalizeUrl(RAW_URL);
+  const URL_FIXED = URL_ && URL_ !== String(RAW_URL).trim();
+  const KEY  = cfg.SUPABASE_PUBLISHABLE_KEY || cfg.SUPABASE_ANON_KEY || "";
+  const out = $("#out");
+
+  function step(cls, title, msg, extra){
+    const d = document.createElement("div");
+    d.className = "step " + cls;
+    const ic = cls==="pass" ? "✅" : cls==="fail" ? "❌" : "⚠️";
+    const t = document.createElement("div"); t.className="t";
+    t.innerHTML = '<span class="ic">'+ic+'</span>';
+    t.appendChild(document.createTextNode(title));
+    d.appendChild(t);
+    if(msg){ const m=document.createElement("div"); m.className="m"; m.textContent=msg; d.appendChild(m); }
+    if(extra){ const p=document.createElement("pre"); p.textContent=extra; d.appendChild(p); }
+    out.appendChild(d);
+    return d;
+  }
+  function verdict(good, title, htmlBody){
+    const d=document.createElement("div");
+    d.className="verdict "+(good?"good":"bad");
+    d.innerHTML="<b>"+title+"</b>"+htmlBody;
+    out.appendChild(d);
+  }
+  const errText = e => !e ? "" :
+    [e.message, e.code && ("code: "+e.code), e.details, e.hint].filter(Boolean).join("\n");
+
+  // ---- 키 종류 판별 ----
+  function keyKind(k){
+    if(!k) return {kind:"none", label:"없음"};
+    if(/^sb_secret_/.test(k)) return {kind:"secret", label:"sb_secret_ (비밀 키)"};
+    if(/^sb_publishable_/.test(k)) return {kind:"pub", label:"sb_publishable_ (공개 키)"};
+    if(/^eyJ/.test(k)){
+      try{
+        const p = JSON.parse(atob(k.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));
+        if(p.role==="service_role") return {kind:"secret", label:"레거시 JWT · role=service_role (비밀 키)"};
+        if(p.role==="anon") return {kind:"pub", label:"레거시 JWT · role=anon (공개 키)"};
+        return {kind:"unknown", label:"레거시 JWT · role="+(p.role||"?")};
+      }catch(_){ return {kind:"unknown", label:"JWT 같지만 해석 실패"}; }
+    }
+    return {kind:"unknown", label:"알 수 없는 형식"};
+  }
+
+  const kk = keyKind(KEY);
+  const ki = $("#keyinfo");
+  ki.innerHTML =
+    '<div class="meta"><span class="k">URL</span><span class="lead"></span><span class="v">' +
+      (URL_ ? URL_.replace(/^https?:\/\//,'') + (URL_FIXED ? ' <span style=\"color:var(--warn)\">(경로 보정됨)</span>' : '') : '<span style=\"color:var(--bad)\">비어 있음</span>') +
+    '</span></div>' +
+    '<div class="meta"><span class="k">키 종류</span><span class="lead"></span><span class="v">' +
+      kk.label + '</span></div>';
+
+  if(kk.kind === "secret"){
+    step("fail","비밀 키가 config.js에 들어 있습니다",
+      "이 키는 RLS를 무시합니다. 브라우저에 내려가는 코드에 넣으면 안 되고, 공개 저장소에 올리면 누구나 데이터를 읽고 지울 수 있습니다.");
+    verdict(false,"먼저 이걸 해결해야 합니다",
+      "1. Supabase 대시보드 → Project Settings → API Keys → 이 secret 키 <b>Revoke</b><br>" +
+      "2. 같은 화면의 <code>sb_publishable_...</code> 키를 복사<br>" +
+      "3. <code>config.js</code>의 <code>SUPABASE_PUBLISHABLE_KEY</code>에 넣고 다시 진단<br><br>" +
+      "이미 secret 키를 커밋해서 push했다면 반드시 Revoke하세요. 커밋 이력에 남아 있으면 지워도 노출된 상태입니다.");
+    $("#run").disabled = true;
+    return;
+  }
+
+  const sb = (URL_ && KEY) ? window.supabase.createClient(URL_, KEY) : null;
+  if(!sb){
+    step("fail","config.js가 채워지지 않았습니다","SUPABASE_URL 과 키를 모두 넣어주세요.");
+    $("#run").disabled = true;
+    return;
+  }
+
+  $("#run").onclick = async function(){
+    out.innerHTML = "";
+    const btn = $("#run"); btn.disabled = true; btn.textContent = "진단 중…";
+    const email = $("#email").value.trim(), pw = $("#pw").value;
+    let uid = null, myCount = null;
+
+    try{
+      // 0-a. URL 형태
+      if(URL_FIXED){
+        step("warn","URL에 불필요한 경로가 붙어 있습니다",
+          "config.js: " + RAW_URL + "\n실제 사용:  " + URL_ +
+          "\n\n앱이 자동으로 루트만 남겨 동작하지만, config.js를 고쳐두는 게 좋습니다. " +
+          "그대로 두면 브라우저 콘솔에 경고가 계속 남습니다.");
+      } else {
+        step("pass","URL 형태", URL_);
+      }
+
+      // 0-b. 키 형식
+      if(kk.kind === "pub") step("pass","키 형식", kk.label + " — 공개 키가 맞습니다.");
+      else step("warn","키 형식", kk.label + " — 공개 키인지 확인이 안 됩니다. 계속 진행합니다.");
+
+      // 1. 테이블 존재 + 익명 접근
+      await sb.auth.signOut();
+      const anonRes = await sb.from("workouts").select("id").limit(1);
+      if(anonRes.error){
+        const m = anonRes.error.message || "";
+        if(/relation .* does not exist|schema cache|Could not find the table/i.test(m)){
+          step("fail","테이블이 없습니다", "schema.sql 을 SQL Editor에서 실행하지 않았습니다.\n\n" + errText(anonRes.error));
+          verdict(false,"schema.sql 을 먼저 실행하세요","Supabase → SQL Editor → New query → <code>supabase/schema.sql</code> 전체 붙여넣고 Run");
+          return;
+        }
+        if(/Invalid API key|JWT|apikey/i.test(m)){
+          step("fail","키가 거부되었습니다", errText(anonRes.error));
+          verdict(false,"키 또는 URL이 잘못됐습니다",
+            "Project Settings → Data API 의 <b>Project URL</b>과, API Keys 의 <b>Publishable key</b>를 다시 복사해 주세요. " +
+            "URL 끝에 <code>/</code>나 공백이 붙어 있지 않은지도 확인하세요.");
+          return;
+        }
+        step("pass","익명 접근 차단됨", "로그인하지 않은 요청은 거부됩니다. RLS가 살아 있다는 뜻입니다.\n\n" + errText(anonRes.error));
+      } else if((anonRes.data||[]).length === 0){
+        step("pass","익명 접근 시 빈 결과", "로그인하지 않으면 아무것도 안 보입니다. RLS 정상.");
+      } else {
+        step("fail","익명 상태에서 데이터가 보입니다", "RLS가 걸려 있지 않습니다. 누구나 이 데이터를 읽을 수 있습니다.");
+        verdict(false,"RLS가 적용되지 않았습니다",
+          "<code>supabase/schema.sql</code>의 RLS 부분이 실행되지 않았습니다. 파일 전체를 다시 Run 하세요. " +
+          "이 상태로는 저장소를 public으로 올리지 마세요.");
+        return;
+      }
+
+      // 2. 로그인
+      if(!email || !pw){
+        step("warn","로그인 건너뜀","이메일과 비밀번호를 입력하면 나머지 단계까지 확인할 수 있습니다.");
+        return;
+      }
+      const login = await sb.auth.signInWithPassword({email, password: pw});
+      if(login.error){
+        const m = login.error.message || "";
+        step("fail","로그인 실패", errText(login.error));
+        if(/Email not confirmed/i.test(m)){
+          verdict(false,"이메일 확인이 남아 있습니다",
+            "Authentication → Sign In / Providers → Email → <b>Confirm email</b> 토글을 끄고 다시 시도하거나, 가입 메일의 링크를 클릭하세요.");
+        } else if(/Invalid login credentials/i.test(m)){
+          verdict(false,"계정이 없거나 비밀번호가 다릅니다",
+            "<code>index.html</code>을 열어 <b>계정 만들기</b>로 먼저 가입해야 합니다. 이미 가입했다면 비밀번호를 확인하세요.");
+        } else {
+          verdict(false,"로그인 단계에서 막혔습니다","위 오류 메시지를 그대로 확인해 주세요.");
+        }
+        return;
+      }
+      uid = login.data.user.id;
+      step("pass","로그인 성공", login.data.user.email + "\nuser id: " + uid);
+
+      // 3. 내 계정에 붙은 기록
+      const mine = await sb.from("workouts").select("id,date,focus,source");
+      if(mine.error){
+        step("fail","기록 조회 실패", errText(mine.error));
+        verdict(false,"select 권한이 없습니다","<code>schema.sql</code>의 grant / policy 부분을 다시 실행하세요.");
+        return;
+      }
+      myCount = (mine.data||[]).length;
+      const ptCount = (mine.data||[]).filter(function(w){return w.source==="pt"}).length;
+
+      if(myCount === 0){
+        step("fail","내 계정에 기록이 0건입니다",
+          "RLS와 로그인은 정상인데 데이터가 내 계정에 붙어 있지 않습니다.\n" +
+          "seed.sql 을 실행하지 않았거나, 계정을 만들기 전에 실행했거나, 다른 계정에 붙었습니다.");
+        verdict(false,"이것이 지금 문제의 원인입니다",
+          "secret 키로는 데이터가 보이고 publishable 키로는 안 보인 이유가 바로 이겁니다. " +
+          "secret 키는 RLS를 무시해서 <i>남의 행까지</i> 다 보여주기 때문입니다. 키는 정상입니다.<br><br>" +
+          "아래 SQL을 SQL Editor에서 실행하세요. 내 계정으로 데이터를 옮깁니다.");
+        const fix = document.createElement("pre");
+        fix.textContent =
+          "-- 1) 지금 어떤 계정들이 있는지\n" +
+          "select id, email, created_at from auth.users order by created_at;\n\n" +
+          "-- 2) PT 데이터가 누구에게 붙어 있는지 (0건이면 seed.sql 미실행)\n" +
+          "select user_id, count(*) from workouts group by user_id;\n\n" +
+          "-- 3-A) 데이터가 아예 없으면: seed.sql 을 실행하세요\n\n" +
+          "-- 3-B) 다른 계정에 붙어 있으면: 내 계정으로 옮기기\n" +
+          "update workouts\n" +
+          "   set user_id = '" + uid + "'\n" +
+          " where source = 'pt';\n";
+        out.appendChild(fix);
+        return;
+      }
+
+      step("pass","내 계정 기록 " + myCount + "건", "PT 수업 " + ptCount + "건 / 개인운동 " + (myCount-ptCount) + "건" +
+        (ptCount === 34 ? "\nPT 34세션이 정확히 들어와 있습니다." :
+         ptCount === 0 ? "\nPT 시드가 없습니다. seed.sql 을 실행하세요." :
+         "\n예상은 34세션인데 " + ptCount + "건입니다. seed.sql 을 다시 실행해도 안전합니다."));
+
+      // 4. 세트 조회
+      const sets = await sb.from("workout_sets").select("id", {count:"exact", head:true});
+      if(sets.error) step("fail","workout_sets 조회 실패", errText(sets.error));
+      else step(sets.count===288?"pass":"warn","세트 " + sets.count + "행",
+        sets.count===288 ? "288행 예상과 일치합니다." : "288행 예상과 다릅니다. seed.sql 재실행을 권합니다.");
+
+      // 5. 쓰기 권한 (넣고 바로 지움)
+      const probe = "1900-01-01";
+      await sb.from("workouts").delete().eq("date", probe);
+      const ins = await sb.from("workouts")
+        .insert({user_id: uid, date: probe, focus: "lower", source: "self", note: "diagnose probe"})
+        .select("id").single();
+      if(ins.error){
+        step("fail","쓰기 실패", errText(ins.error));
+        verdict(false,"저장이 안 되는 상태입니다",
+          /row-level security/i.test(ins.error.message||"")
+            ? "RLS의 <code>with check</code> 정책이 빠졌습니다. <code>schema.sql</code> 전체를 다시 Run 하세요."
+            : "위 오류를 확인해 주세요.");
+        return;
+      }
+      const insSet = await sb.from("workout_sets").insert({
+        workout_id: ins.data.id, exercise_id: "barbell_squat", seq:0, set_index:0,
+        weight: 40, reps: 12, set_count: 1, per_side: false});
+      await sb.from("workouts").delete().eq("id", ins.data.id);
+      if(insSet.error) step("fail","workout_sets 쓰기 실패", errText(insSet.error));
+      else step("pass","쓰기 권한 정상","테스트 기록을 넣고 지웠습니다. 앱에서 저장이 됩니다.");
+
+      // 최종
+      const allGood = myCount>0 && ptCount===34 && !insSet.error;
+      if(allGood){
+        verdict(true,"전부 정상입니다",
+          "이제 <code>index.html</code>을 열어 실제로 써보고, 문제 없으면 push하세요.<br><br>" +
+          "<code>config.js</code>의 publishable 키는 커밋해도 됩니다. 방금 1단계에서 " +
+          "로그인 없이는 아무것도 안 보인다는 걸 확인했습니다.");
+      } else {
+        verdict(false,"일부 항목을 더 손봐야 합니다","위에서 ❌ 나 ⚠️ 표시된 단계를 확인해 주세요.");
+      }
+    } catch(e){
+      step("fail","예상치 못한 오류", (e && e.message) || String(e));
+      if(/Failed to fetch|NetworkError/i.test((e&&e.message)||"")){
+        verdict(false,"서버에 닿지 못했습니다",
+          "Project URL이 맞는지, 프로젝트가 일시 정지(paused) 상태가 아닌지 확인하세요. " +
+          "무료 프로젝트는 1주일 미접속 시 정지되고, 대시보드에서 Restore를 누르면 복구됩니다.");
+      }
+    } finally {
+      btn.disabled = false; btn.textContent = "다시 진단";
+    }
+  };
+})();
+</script>
+</body>
+</html>

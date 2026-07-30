@@ -1,0 +1,7 @@
+node_modules/
+package.json
+package-lock.json
+.DS_Store
+scripts/__pycache__/
+scripts/parsed.json
+scripts/raw_sessions.json

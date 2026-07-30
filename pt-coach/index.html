@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e8e4d8">
+<title>오늘의 운동</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🧾</text></svg>">
+<link rel="stylesheet" href="https://fonts.googleapis.com/earlyaccess/nanumgothiccoding.css">
+
+<style>
+/* ── 눈누 웹폰트 ─────────────────────────────────────────────
+   얇은둥근모 (사왈이, 퍼블릭 도메인) — 제목·숫자·라벨
+   나눔고딕코딩 (네이버)           — 긴 설명 문장
+   ───────────────────────────────────────────────────────── */
+@font-face{font-family:'ThinRounded';
+  src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2511-1@1.0/ThinDungGeunMo.woff2') format('woff2');
+  font-weight:normal;font-display:swap}
+
+:root{
+  --paper:#f3f0e7; --paper-2:#eae6da; --ink:#26231e; --ink-2:#6b655a; --ink-3:#a9a294;
+  --line:#c9c2b2; --hi:#2f6d4f; --hi-bg:#e2ecdf; --warn:#a8442b; --warn-bg:#f3e2dc;
+  --disp:'ThinRounded','NanumGothicCoding',ui-monospace,monospace;
+  --body:'NanumGothicCoding',ui-monospace,monospace;
+  --fs:15.5px; --w:400px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:#0e1116; color:var(--ink);
+  font-family:var(--disp); font-size:var(--fs); line-height:1.62;
+  display:flex; flex-direction:column; align-items:center;
+  padding:14px 10px calc(24px + env(safe-area-inset-bottom));
+  min-height:100vh;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,select{font:inherit;color:inherit}
+
+/* ── 용지 ─────────────────────────────────────────────────── */
+.paper{
+  width:100%;max-width:var(--w);background:var(--paper);color:var(--ink);
+  padding:24px 18px 18px;position:relative;
+}
+.paper::before,.paper::after{
+  content:"";position:absolute;left:0;right:0;height:9px;
+  background:repeating-linear-gradient(-45deg,var(--paper) 0 7px,transparent 7px 14px),
+             repeating-linear-gradient(45deg,var(--paper) 0 7px,transparent 7px 14px);
+  background-size:14px 9px;
+}
+.paper::before{top:-8px}
+.paper::after{bottom:-8px;transform:scaleY(-1)}
+
+.c{text-align:center}
+.dim{color:var(--ink-2)}
+.faint{color:var(--ink-3)}
+.tiny{font-size:.8em;line-height:1.5}
+.sans{font-family:var(--body)}
+.hidden{display:none !important}
+
+hr.rule{border:0;border-top:1px dashed var(--line);margin:10px 0}
+hr.rule.solid{border-top-style:solid}
+hr.rule.dbl{border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+            height:3px;margin:11px 0}
+
+.brand{letter-spacing:.14em;font-size:1.3em;line-height:1.35;margin:0}
+.tagline{letter-spacing:.055em;margin:3px 0 0}
+
+/* 키 ······ 값 */
+.meta{display:flex;justify-content:space-between;gap:6px;white-space:nowrap;overflow:hidden}
+.meta .k{color:var(--ink-2);flex:none}
+.meta .lead{flex:1;overflow:hidden;color:var(--line);min-width:12px}
+.meta .lead::before{content:"·······································································"}
+.meta .v{flex:none}
+
+.utility{display:flex;align-items:center;justify-content:space-between;gap:8px;
+         font-size:.8em;color:var(--ink-3);margin-top:8px}
+.zoom{display:flex;gap:3px}
+.zoom button{border:1px solid var(--line);padding:2px 7px;color:var(--ink-2);line-height:1.4}
+.zoom button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.utility button.link{color:var(--ink-2);text-decoration:underline}
+
+.tabs{display:flex;margin:11px 0 0;border:1px solid var(--line)}
+.tabs button{flex:1;padding:7px 0;font-size:.9em;letter-spacing:.06em;color:var(--ink-2);
+             border-right:1px solid var(--line)}
+.tabs button:last-child{border-right:0}
+.tabs button[aria-selected=true]{background:var(--ink);color:var(--paper)}
+
+/* 부위 스탬프 */
+.stamps{display:flex;gap:7px;justify-content:center;margin:12px 0 7px}
+.stamps button{border:1px dashed var(--line);padding:6px 9px 5px;color:var(--ink-2);
+               letter-spacing:.1em;line-height:1.3;text-align:center}
+.stamps button b{display:block;font-weight:normal;font-size:1.02em}
+.stamps button i{display:block;font-style:normal;font-size:.72em;letter-spacing:0;color:var(--ink-3)}
+.stamps button[aria-pressed=true]{border:2px solid var(--ink);color:var(--ink);
+                                  transform:rotate(-1.2deg);padding:5px 8px 4px}
+.stamps button[aria-pressed=true] i{color:var(--ink-2)}
+
+.why{font-family:var(--body);font-size:.82em;line-height:1.55;color:var(--ink-2);
+     text-align:center;padding:0 2px;margin:0}
+
+/* 종목 */
+.item{margin:12px 0 0}
+.item .hd{display:flex;align-items:baseline;gap:6px}
+.item .no{color:var(--ink-3);flex:none}
+.item .nm{letter-spacing:.02em;flex:1}
+.item .pin{flex:none;font-size:.85em}
+.item .tag{color:var(--ink-2);font-size:.8em;letter-spacing:.04em}
+.item .tag .bd{border:1px solid var(--line);padding:0 4px;margin-left:4px}
+.item .tag .bd.new{border-color:var(--warn);color:var(--warn)}
+
+.setline{display:flex;align-items:center;white-space:nowrap;padding:2px 0}
+.setline .lbl{width:4.5em;color:var(--ink-2);font-size:.86em;flex:none}
+.setline .wt{width:5.8em;flex:none;display:flex;align-items:center;justify-content:flex-end}
+.setline .x{width:1.5em;text-align:center;color:var(--ink-3);flex:none}
+.setline .rp{width:3.6em;flex:none;display:flex;align-items:center;justify-content:flex-end}
+.setline .u{font-size:.72em;color:var(--ink-3);padding-left:2px;flex:none}
+.setline .bw{width:5.8em;text-align:right;flex:none;color:var(--ink-2);font-size:.9em}
+.setline .box{margin-left:auto;padding:2px 0 2px 8px;flex:none;letter-spacing:-.04em;
+              min-width:2.4em;text-align:right}
+.setline .del{flex:none;padding:2px 0 2px 7px;color:var(--ink-3);font-size:.85em}
+.setline.warm{color:var(--ink-2)}
+.setline.done{color:var(--hi)}
+
+input.num{width:3.5em;background:transparent;border:0;border-bottom:1px dotted var(--line);
+          text-align:right;font-family:var(--disp);font-size:1em;padding:2px 1px;
+          font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+input.num::-webkit-outer-spin-button,input.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input.num:focus{outline:0;border-bottom:1px solid var(--ink);background:var(--paper-2)}
+
+.note{font-family:var(--body);color:var(--ink-2);font-size:.78em;line-height:1.55;padding:3px 0 0}
+.note::before{content:"▸ ";color:var(--ink-3);font-family:var(--disp)}
+
+.exfoot{display:flex;gap:5px;margin-top:6px}
+.exfoot button{flex:1;border:1px solid var(--line);padding:5px 2px;font-size:.76em;
+               color:var(--ink-2);letter-spacing:.02em}
+.exfoot button:active{background:var(--paper-2)}
+
+.total{display:flex;justify-content:space-between;letter-spacing:.03em}
+.total.big{font-size:1.24em}
+
+.acts{display:flex;gap:6px;margin-top:13px}
+.acts button{flex:1;border:1px solid var(--line);padding:10px 4px;font-size:.85em;color:var(--ink-2)}
+.acts button.pri{background:var(--ink);color:var(--paper);border-color:var(--ink);
+                 letter-spacing:.1em;flex:2}
+.acts button:disabled{opacity:.4}
+.acts button.icon{flex:0 0 auto;padding:10px 12px}
+
+.barcode{height:40px;margin:11px 0 4px;
+  background-image:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px,
+    var(--ink) 4px 5px,transparent 5px 9px,var(--ink) 9px 12px,transparent 12px 13px,
+    var(--ink) 13px 14px,transparent 14px 18px)}
+.barnum{letter-spacing:.3em;font-size:.8em;color:var(--ink-2);margin:0}
+
+/* 기록 · 추이 */
+.log{margin:11px 0 0}
+.log .hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.log .src{font-size:.75em;color:var(--ink-3);border:1px solid var(--line);padding:0 5px}
+.log .li{display:flex;justify-content:space-between;gap:6px;white-space:nowrap;
+         overflow:hidden;font-size:.88em;padding:1px 0}
+.log .li .n{overflow:hidden;text-overflow:ellipsis}
+.log .li .v{flex:none;color:var(--ink-2);font-size:.94em}
+
+.trend{margin:12px 0 0}
+.trend .hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.trend .d{font-size:.8em;flex:none}
+.up{color:var(--hi)} .down{color:var(--warn)}
+svg.spark{display:block;width:100%;height:34px;overflow:visible;margin:2px 0}
+
+/* 로그인 · 상태 */
+.field{margin-top:9px}
+.field label{display:block;font-size:.78em;color:var(--ink-2);letter-spacing:.04em}
+.field input{width:100%;background:var(--paper-2);border:1px solid var(--line);
+             padding:9px 10px;font-family:var(--disp);font-size:1em}
+.field input:focus{outline:0;border-color:var(--ink)}
+.msg{font-family:var(--body);font-size:.8em;line-height:1.5;padding:9px 10px;margin-top:11px}
+.msg.err{background:var(--warn-bg);color:var(--warn)}
+.msg.ok{background:var(--hi-bg);color:var(--hi)}
+.empty{text-align:center;color:var(--ink-3);padding:34px 12px;font-size:.9em}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid currentColor;
+      border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite;
+      vertical-align:-1px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:9;
+       width:calc(100% - 24px);max-width:var(--w);text-align:center;
+       font-family:var(--body);font-size:.8em;padding:10px 12px;border:1px solid var(--ink)}
+.toast.ok{background:var(--hi-bg);color:var(--hi);border-color:var(--hi)}
+.toast.err{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+
+.tear{width:100%;max-width:var(--w);text-align:center;color:#39404e;letter-spacing:.3em;
+      font-size:11px;padding:11px 0 0;font-family:ui-monospace,monospace}
+</style>
+</head>
+<body>
+
+<div class="paper">
+
+  <div class="c">
+    <p class="brand">＊ 오늘의 운동 ＊</p>
+    <p class="tagline dim tiny">P T &nbsp; P R E S C R I P T I O N</p>
+  </div>
+
+  <hr class="rule dbl">
+
+  <div class="meta"><span class="k">발행</span><span class="lead"></span><span class="v" id="mDate">—</span></div>
+  <div class="meta"><span class="k">전표</span><span class="lead"></span><span class="v" id="mNo">—</span></div>
+  <div class="meta"><span class="k">회원</span><span class="lead"></span><span class="v" id="mWho">—</span></div>
+
+  <div class="utility">
+    <div class="zoom" id="zoom" role="group" aria-label="글자 크기">
+      <button data-z="14.5px" aria-pressed="false">작게</button>
+      <button data-z="15.5px" aria-pressed="true">보통</button>
+      <button data-z="17.5px" aria-pressed="false">크게</button>
+    </div>
+    <span id="uRight"></span>
+  </div>
+
+  <div id="boot" class="empty"><span class="spin"></span> 불러오는 중…</div>
+
+  <div id="needConfig" class="hidden">
+    <hr class="rule">
+    <p class="sans tiny">config.js에 Supabase 정보를 넣어주세요. 순서는 SETUP.md에 있습니다.</p>
+  </div>
+
+  <!-- 로그인 -->
+  <div id="auth" class="hidden">
+    <hr class="rule">
+    <p class="c" style="letter-spacing:.12em;margin:6px 0 2px">회 원 확 인</p>
+    <p class="c sans tiny dim" style="margin:0 0 4px">처음이면 아래에서 계정을 만들면 돼요.</p>
+    <div class="field">
+      <label for="email">이메일</label>
+      <input id="email" type="email" autocomplete="username" inputmode="email" placeholder="me@example.com">
+    </div>
+    <div class="field">
+      <label for="pw">비밀번호</label>
+      <input id="pw" type="password" autocomplete="current-password" placeholder="6자 이상">
+    </div>
+    <div class="acts">
+      <button id="signupBtn">계정 만들기</button>
+      <button class="pri" id="loginBtn">로그인</button>
+    </div>
+    <div id="authMsg"></div>
+  </div>
+
+  <!-- 메인 -->
+  <div id="app" class="hidden">
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="today" aria-selected="true">오늘</button>
+      <button role="tab" data-tab="log"   aria-selected="false">기록</button>
+      <button role="tab" data-tab="trend" aria-selected="false">추이</button>
+    </nav>
+
+    <section id="tab-today">
+      <div id="demoBanner"></div>
+      <div class="stamps" id="focuspick"></div>
+      <p class="why" id="why"></p>
+      <hr class="rule">
+      <div id="slots"></div>
+      <hr class="rule dbl">
+      <div id="totals"></div>
+      <div class="acts">
+        <button class="icon" id="reroll" title="다른 조합으로">🎲</button>
+        <button id="addEx">＋ 종목</button>
+        <button class="pri" id="save">저 장</button>
+      </div>
+    </section>
+
+    <section id="tab-log" class="hidden"></section>
+    <section id="tab-trend" class="hidden"></section>
+  </div>
+
+  <hr class="rule solid">
+  <div class="c">
+    <p class="tiny dim" style="margin:0">교환·환불 불가 · 근육통은 정상입니다</p>
+    <div class="barcode"></div>
+    <p class="barnum" id="barnum">—</p>
+  </div>
+
+</div>
+
+<div class="tear">- - - - - - - - - ✂ - - - - - - - - -</div>
+
+<script src="config.js"></script>
+<script src="engine.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

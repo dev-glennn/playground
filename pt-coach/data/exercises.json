@@ -1,0 +1,725 @@
+{
+ "focus_labels": {
+  "lower": "하체·힙",
+  "back": "등",
+  "push": "가슴·어깨"
+ },
+ "pattern_labels": {
+  "abduction": "고관절 외전",
+  "adduction": "고관절 내전",
+  "glute_bridge": "힙 익스텐션",
+  "glute_iso": "둔근 고립",
+  "squat": "스쿼트",
+  "squat_machine": "머신 스쿼트",
+  "squat_lateral": "측면 스쿼트",
+  "knee_ext": "무릎 신전",
+  "unilateral": "한다리",
+  "hinge": "힌지",
+  "hinge_uni": "한다리 힌지",
+  "plyo": "점프·순간력",
+  "vert_pull": "수직 당기기",
+  "horiz_pull": "수평 당기기",
+  "horiz_pull_uni": "한팔 당기기",
+  "rear_delt": "후면 삼각",
+  "horiz_push": "수평 밀기",
+  "incline_push": "인클라인 밀기",
+  "vert_push": "수직 밀기",
+  "vert_push_uni": "한팔 수직 밀기",
+  "chest_iso": "가슴 고립",
+  "side_delt": "측면 삼각",
+  "front_delt": "전면 삼각",
+  "triceps": "삼두",
+  "conditioning": "컨디셔닝",
+  "full_body": "전신"
+ },
+ "exercises": [
+  {
+   "id": "deadlift",
+   "name": "데드리프트",
+   "focus": "back",
+   "pattern": "hinge",
+   "equipment": "barbell",
+   "from_history": true
+  },
+  {
+   "id": "dumbbell_deadlift",
+   "name": "덤벨 데드리프트",
+   "focus": "back",
+   "pattern": "hinge",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "band_row",
+   "name": "세라밴드 로우",
+   "focus": "back",
+   "pattern": "horiz_pull",
+   "equipment": "band",
+   "from_history": true
+  },
+  {
+   "id": "barbell_row",
+   "name": "바벨 로우 (언더그립)",
+   "focus": "back",
+   "pattern": "horiz_pull",
+   "equipment": "barbell",
+   "from_history": true
+  },
+  {
+   "id": "cable_row",
+   "name": "케이블 로우 (일자바)",
+   "focus": "back",
+   "pattern": "horiz_pull",
+   "equipment": "cable",
+   "from_history": true
+  },
+  {
+   "id": "middle_row",
+   "name": "미들 로우",
+   "focus": "back",
+   "pattern": "horiz_pull",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "seated_row",
+   "name": "시티드 로우 (머신)",
+   "focus": "back",
+   "pattern": "horiz_pull",
+   "equipment": "machine",
+   "from_history": false
+  },
+  {
+   "id": "wide_cable_row",
+   "name": "와이드 케이블 로우",
+   "focus": "back",
+   "pattern": "horiz_pull",
+   "equipment": "cable",
+   "from_history": true
+  },
+  {
+   "id": "chest_supported_row",
+   "name": "체스트 서포티드 로우",
+   "focus": "back",
+   "pattern": "horiz_pull_uni",
+   "equipment": "machine",
+   "from_history": false
+  },
+  {
+   "id": "one_arm_cable_row",
+   "name": "원암 케이블 로우",
+   "focus": "back",
+   "pattern": "horiz_pull_uni",
+   "equipment": "cable",
+   "from_history": true
+  },
+  {
+   "id": "one_arm_dumbbell_row",
+   "name": "원암 덤벨 로우",
+   "focus": "back",
+   "pattern": "horiz_pull_uni",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "one_arm_row_machine",
+   "name": "원암 로우 머신",
+   "focus": "back",
+   "pattern": "horiz_pull_uni",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "dumbbell_rear_lateral",
+   "name": "덤벨 리어 레터럴",
+   "focus": "back",
+   "pattern": "rear_delt",
+   "equipment": "dumbbell",
+   "from_history": false
+  },
+  {
+   "id": "face_pull",
+   "name": "페이스 풀",
+   "focus": "back",
+   "pattern": "rear_delt",
+   "equipment": "cable",
+   "from_history": true
+  },
+  {
+   "id": "reverse_pec_deck",
+   "name": "리버스 팩덱",
+   "focus": "back",
+   "pattern": "rear_delt",
+   "equipment": "machine",
+   "from_history": false
+  },
+  {
+   "id": "arm_pulldown",
+   "name": "암 풀다운",
+   "focus": "back",
+   "pattern": "vert_pull",
+   "equipment": "cable",
+   "from_history": true
+  },
+  {
+   "id": "lat_pulldown",
+   "name": "랫풀다운",
+   "focus": "back",
+   "pattern": "vert_pull",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "lat_pulldown_narrow",
+   "name": "랫풀다운 (내로우 그립)",
+   "focus": "back",
+   "pattern": "vert_pull",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "lat_pulldown_under",
+   "name": "랫풀다운 (언더그립)",
+   "focus": "back",
+   "pattern": "vert_pull",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "pullup_assist",
+   "name": "풀업 (어시스트)",
+   "focus": "back",
+   "pattern": "vert_pull",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "straight_arm_pulldown",
+   "name": "스트레이트 암 풀다운",
+   "focus": "back",
+   "pattern": "vert_pull",
+   "equipment": "cable",
+   "from_history": false
+  },
+  {
+   "id": "wide_pulldown",
+   "name": "와이드 풀다운",
+   "focus": "back",
+   "pattern": "vert_pull",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "band_hip_abduction",
+   "name": "밴드 사이드 워크",
+   "focus": "lower",
+   "pattern": "abduction",
+   "equipment": "band",
+   "from_history": false
+  },
+  {
+   "id": "cable_hip_abduction",
+   "name": "케이블 힙 어브덕션",
+   "focus": "lower",
+   "pattern": "abduction",
+   "equipment": "cable",
+   "from_history": false
+  },
+  {
+   "id": "hip_abduction",
+   "name": "아웃타이 (힙 어브덕션)",
+   "focus": "lower",
+   "pattern": "abduction",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "copenhagen_plank",
+   "name": "코펜하겐 플랭크",
+   "focus": "lower",
+   "pattern": "adduction",
+   "equipment": "bodyweight",
+   "from_history": false
+  },
+  {
+   "id": "hip_adduction",
+   "name": "이너타이 (힙 어덕션)",
+   "focus": "lower",
+   "pattern": "adduction",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "leg_press_pad",
+   "name": "레그프레스 (다리 사이 패드)",
+   "focus": "lower",
+   "pattern": "adduction",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "aqua_swing",
+   "name": "아쿠아 스윙 / 사이드 스텝",
+   "focus": "lower",
+   "pattern": "conditioning",
+   "equipment": "aquabag",
+   "from_history": true
+  },
+  {
+   "id": "aquabag_calf",
+   "name": "아쿠아백 스쿼트 카프",
+   "focus": "lower",
+   "pattern": "conditioning",
+   "equipment": "aquabag",
+   "from_history": true
+  },
+  {
+   "id": "medball_complex",
+   "name": "메드신볼 콤플렉스",
+   "focus": "lower",
+   "pattern": "conditioning",
+   "equipment": "medball",
+   "from_history": true
+  },
+  {
+   "id": "hip_thrust",
+   "name": "힙 쓰러스트",
+   "focus": "lower",
+   "pattern": "glute_bridge",
+   "equipment": "barbell",
+   "from_history": true
+  },
+  {
+   "id": "hip_thrust_smith",
+   "name": "힙 쓰러스트 (스미스)",
+   "focus": "lower",
+   "pattern": "glute_bridge",
+   "equipment": "smith",
+   "from_history": true
+  },
+  {
+   "id": "cable_kickback",
+   "name": "케이블 킥백",
+   "focus": "lower",
+   "pattern": "glute_iso",
+   "equipment": "cable",
+   "from_history": false
+  },
+  {
+   "id": "monster_glute",
+   "name": "몬스터 글루트",
+   "focus": "lower",
+   "pattern": "glute_iso",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "romanian_deadlift",
+   "name": "루마니안 데드리프트",
+   "focus": "lower",
+   "pattern": "hinge",
+   "equipment": "barbell",
+   "from_history": false
+  },
+  {
+   "id": "stiff_deadlift",
+   "name": "스티프 데드리프트",
+   "focus": "lower",
+   "pattern": "hinge",
+   "equipment": "barbell",
+   "from_history": true
+  },
+  {
+   "id": "sumo_deadlift",
+   "name": "스모 데드리프트",
+   "focus": "lower",
+   "pattern": "hinge",
+   "equipment": "barbell",
+   "from_history": true
+  },
+  {
+   "id": "kb_split_hinge",
+   "name": "스플릿 자세 케틀벨 힌지",
+   "focus": "lower",
+   "pattern": "hinge_uni",
+   "equipment": "kettlebell",
+   "from_history": true
+  },
+  {
+   "id": "nordic_curl",
+   "name": "노르딕 컬 (햄스트링)",
+   "focus": "lower",
+   "pattern": "hinge_uni",
+   "equipment": "bodyweight",
+   "from_history": false
+  },
+  {
+   "id": "leg_extension",
+   "name": "레그 익스텐션",
+   "focus": "lower",
+   "pattern": "knee_ext",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "jump_squat",
+   "name": "점프 스쿼트·런지",
+   "focus": "lower",
+   "pattern": "plyo",
+   "equipment": "bodyweight",
+   "from_history": true
+  },
+  {
+   "id": "barbell_squat",
+   "name": "스쿼트 (바벨)",
+   "focus": "lower",
+   "pattern": "squat",
+   "equipment": "barbell",
+   "from_history": true
+  },
+  {
+   "id": "bench_squat",
+   "name": "벤치 스쿼트",
+   "focus": "lower",
+   "pattern": "squat",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "dumbbell_squat",
+   "name": "덤벨 스쿼트",
+   "focus": "lower",
+   "pattern": "squat",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "goblet_squat",
+   "name": "고블릿 스쿼트",
+   "focus": "lower",
+   "pattern": "squat",
+   "equipment": "dumbbell",
+   "from_history": false
+  },
+  {
+   "id": "tbar_squat",
+   "name": "티바 스쿼트",
+   "focus": "lower",
+   "pattern": "squat",
+   "equipment": "barbell",
+   "from_history": true
+  },
+  {
+   "id": "side_squat",
+   "name": "사이드 스쿼트",
+   "focus": "lower",
+   "pattern": "squat_lateral",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "hack_squat",
+   "name": "핵 스쿼트",
+   "focus": "lower",
+   "pattern": "squat_machine",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "leg_press",
+   "name": "레그프레스",
+   "focus": "lower",
+   "pattern": "squat_machine",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "v_squat",
+   "name": "브이 스쿼트 (굿모닝 익스텐션)",
+   "focus": "lower",
+   "pattern": "squat_machine",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "bulgarian_split_squat",
+   "name": "불가리안 스플릿 스쿼트",
+   "focus": "lower",
+   "pattern": "unilateral",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "one_leg_squat_bench",
+   "name": "원레그 스쿼트 (벤치)",
+   "focus": "lower",
+   "pattern": "unilateral",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "one_leg_v_squat",
+   "name": "원레그 브이 스쿼트",
+   "focus": "lower",
+   "pattern": "unilateral",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "skating_kneeup",
+   "name": "원레그 스케이팅 니업",
+   "focus": "lower",
+   "pattern": "unilateral",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "slide_pad",
+   "name": "슬라이드 패드 밀기",
+   "focus": "lower",
+   "pattern": "unilateral",
+   "equipment": "bodyweight",
+   "from_history": true
+  },
+  {
+   "id": "smith_single_squat",
+   "name": "스미스 싱글 스쿼트",
+   "focus": "lower",
+   "pattern": "unilateral",
+   "equipment": "smith",
+   "from_history": true
+  },
+  {
+   "id": "smith_split_squat",
+   "name": "스미스 스플릿 스쿼트",
+   "focus": "lower",
+   "pattern": "unilateral",
+   "equipment": "smith",
+   "from_history": true
+  },
+  {
+   "id": "split_squat",
+   "name": "스플릿 스쿼트",
+   "focus": "lower",
+   "pattern": "unilateral",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "step_up",
+   "name": "박스 스텝업",
+   "focus": "lower",
+   "pattern": "unilateral",
+   "equipment": "dumbbell",
+   "from_history": false
+  },
+  {
+   "id": "walking_lunge",
+   "name": "워킹 런지",
+   "focus": "lower",
+   "pattern": "unilateral",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "dumbbell_fly",
+   "name": "덤벨 플라이",
+   "focus": "push",
+   "pattern": "chest_iso",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "fly_machine",
+   "name": "플라이 머신 (팩덱)",
+   "focus": "push",
+   "pattern": "chest_iso",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "cable_front_raise",
+   "name": "케이블 프론트 레이즈",
+   "focus": "push",
+   "pattern": "front_delt",
+   "equipment": "cable",
+   "from_history": true
+  },
+  {
+   "id": "thruster",
+   "name": "쓰러스트 (덤벨)",
+   "focus": "push",
+   "pattern": "full_body",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "bench_press_barbell",
+   "name": "벤치프레스 (바벨)",
+   "focus": "push",
+   "pattern": "horiz_push",
+   "equipment": "barbell",
+   "from_history": true
+  },
+  {
+   "id": "bench_press_dumbbell",
+   "name": "벤치프레스 (덤벨)",
+   "focus": "push",
+   "pattern": "horiz_push",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "bench_press_smith",
+   "name": "벤치프레스 (스미스)",
+   "focus": "push",
+   "pattern": "horiz_push",
+   "equipment": "smith",
+   "from_history": true
+  },
+  {
+   "id": "chest_press_machine",
+   "name": "체스트 프레스 (머신)",
+   "focus": "push",
+   "pattern": "horiz_push",
+   "equipment": "machine",
+   "from_history": false
+  },
+  {
+   "id": "pushup",
+   "name": "푸쉬업",
+   "focus": "push",
+   "pattern": "horiz_push",
+   "equipment": "bodyweight",
+   "from_history": true
+  },
+  {
+   "id": "incline_bench_barbell",
+   "name": "인클라인 벤치프레스 (바벨)",
+   "focus": "push",
+   "pattern": "incline_push",
+   "equipment": "barbell",
+   "from_history": true
+  },
+  {
+   "id": "incline_bench_dumbbell",
+   "name": "인클라인 벤치프레스 (덤벨)",
+   "focus": "push",
+   "pattern": "incline_push",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "incline_bench_machine",
+   "name": "인클라인 벤치프레스 (머신)",
+   "focus": "push",
+   "pattern": "incline_push",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "incline_bench_smith",
+   "name": "인클라인 벤치프레스 (스미스)",
+   "focus": "push",
+   "pattern": "incline_push",
+   "equipment": "smith",
+   "from_history": true
+  },
+  {
+   "id": "band_lateral_raise",
+   "name": "세라밴드 레터럴 레이즈",
+   "focus": "push",
+   "pattern": "side_delt",
+   "equipment": "band",
+   "from_history": true
+  },
+  {
+   "id": "cable_lateral_raise",
+   "name": "케이블 레터럴 레이즈",
+   "focus": "push",
+   "pattern": "side_delt",
+   "equipment": "cable",
+   "from_history": false
+  },
+  {
+   "id": "lateral_raise",
+   "name": "사이드 레터럴 레이즈 (사레레)",
+   "focus": "push",
+   "pattern": "side_delt",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "band_pushdown",
+   "name": "밴드 푸쉬다운",
+   "focus": "push",
+   "pattern": "triceps",
+   "equipment": "band",
+   "from_history": true
+  },
+  {
+   "id": "arnold_press",
+   "name": "아놀드 프레스",
+   "focus": "push",
+   "pattern": "vert_push",
+   "equipment": "dumbbell",
+   "from_history": false
+  },
+  {
+   "id": "behind_shoulder_press",
+   "name": "비하인드 숄더프레스",
+   "focus": "push",
+   "pattern": "vert_push",
+   "equipment": "barbell",
+   "from_history": true
+  },
+  {
+   "id": "military_press_smith",
+   "name": "밀리터리 프레스 (스미스)",
+   "focus": "push",
+   "pattern": "vert_push",
+   "equipment": "smith",
+   "from_history": true
+  },
+  {
+   "id": "shoulder_press_barbell",
+   "name": "숄더프레스 (바벨·오버헤드)",
+   "focus": "push",
+   "pattern": "vert_push",
+   "equipment": "barbell",
+   "from_history": true
+  },
+  {
+   "id": "shoulder_press_dumbbell",
+   "name": "숄더프레스 (덤벨)",
+   "focus": "push",
+   "pattern": "vert_push",
+   "equipment": "dumbbell",
+   "from_history": true
+  },
+  {
+   "id": "shoulder_press_machine",
+   "name": "숄더프레스 (머신)",
+   "focus": "push",
+   "pattern": "vert_push",
+   "equipment": "machine",
+   "from_history": true
+  },
+  {
+   "id": "shoulder_press_smith",
+   "name": "숄더프레스 (스미스)",
+   "focus": "push",
+   "pattern": "vert_push",
+   "equipment": "smith",
+   "from_history": true
+  },
+  {
+   "id": "one_arm_ohp",
+   "name": "원암 오버헤드 프레스",
+   "focus": "push",
+   "pattern": "vert_push_uni",
+   "equipment": "dumbbell",
+   "from_history": true
+  }
+ ]
+}
