@@ -1,7 +1,45 @@
+# ── OS ────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
+
+# ── 에디터 ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Node ──────────────────────────────────────────────
+# 이 프로젝트는 빌드 단계가 없습니다.
+# 로컬에서 테스트 도구를 설치했을 때를 위한 항목입니다.
 node_modules/
 package.json
 package-lock.json
-.DS_Store
-scripts/__pycache__/
-scripts/parsed.json
-scripts/raw_sessions.json
+yarn.lock
+pnpm-lock.yaml
+npm-debug.log*
+
+# ── Python ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ── 이 프로젝트 ────────────────────────────────────────
+# 카카오톡 원본 내보내기 — 개인 대화 내용이 그대로 들어 있음
+Talk_*.txt
+
+# 앱에서 내려받은 영수증·추이 이미지
+pt-*.png
+
+# Supabase CSV 백업
+*.csv
+
+# config.js 자체는 커밋합니다 (publishable 키는 공개 키).
+# 다른 프로젝트를 붙여 실험할 때만 쓰는 파일:
+config.local.js
