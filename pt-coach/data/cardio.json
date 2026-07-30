@@ -1,0 +1,119 @@
+{
+  "field_labels": {
+    "speed": {
+      "ko": "속도",
+      "unit": "",
+      "step": 0.5
+    },
+    "level": {
+      "ko": "레벨",
+      "unit": "",
+      "step": 1
+    },
+    "resist": {
+      "ko": "저항",
+      "unit": "",
+      "step": 1
+    },
+    "incline": {
+      "ko": "경사",
+      "unit": "%",
+      "step": 0.5
+    },
+    "minutes": {
+      "ko": "시간",
+      "unit": "분",
+      "step": 1
+    },
+    "distance": {
+      "ko": "거리",
+      "unit": "km",
+      "step": 0.1
+    },
+    "floors": {
+      "ko": "층수",
+      "unit": "층",
+      "step": 1
+    }
+  },
+  "machines": [
+    {
+      "id": "treadmill",
+      "name": "런닝머신",
+      "fields": [
+        "speed",
+        "incline",
+        "minutes",
+        "distance"
+      ],
+      "pace": true,
+      "default": {
+        "rep_count": 1,
+        "segments": [
+          {
+            "label": "걷기",
+            "speed": 5,
+            "minutes": 20
+          }
+        ]
+      }
+    },
+    {
+      "id": "stepmill",
+      "name": "천국의 계단",
+      "fields": [
+        "level",
+        "minutes",
+        "floors"
+      ],
+      "default": {
+        "rep_count": 1,
+        "segments": [
+          {
+            "label": null,
+            "speed": 50,
+            "minutes": 20
+          }
+        ]
+      }
+    },
+    {
+      "id": "cycle",
+      "name": "사이클",
+      "fields": [
+        "resist",
+        "minutes",
+        "distance"
+      ],
+      "default": {
+        "rep_count": 1,
+        "segments": [
+          {
+            "label": null,
+            "speed": 5,
+            "minutes": 25
+          }
+        ]
+      }
+    },
+    {
+      "id": "outdoor_run",
+      "name": "야외 달리기",
+      "fields": [
+        "minutes",
+        "distance"
+      ],
+      "pace": true,
+      "default": {
+        "rep_count": 1,
+        "segments": [
+          {
+            "label": null,
+            "minutes": 30,
+            "distance": 4
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -9,30 +9,36 @@
   const cfg = window.PT_CONFIG || {};
   const E = window.PTEngine;
 
+  const HI = "#2f6d4f", WARN = "#a8442b", PAPER = "#f3f0e7";
+
   const S = {
     sb: null, user: null, demo: false,
     catalog: null, focusLabels: {}, patternLabels: {},
     history: [], rec: null, edits: null,
+    date: null, mode: "new", forceNew: false, loaded: null,
+    noCardioTable: false,   // migration_cardio.sql 미실행 감지
     salt: "", manualFocus: null,
     pinned: JSON.parse(localStorage.getItem("pt_pinned") || "[]"),
+    trendSel: new Set(),
+    cardioCat: null,        // data/cardio.json
+    cardio: [],             // [{machine, rep_count, segments:[{label,speed,incline,minutes,distance,floors}]}]
     tab: "today",
   };
 
-  const todayISO = () => {
-    const d = new Date(), p = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-  };
-  const TODAY = todayISO();
+  const iso = (d) => { const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
+  const TODAY = iso(new Date());
+  S.date = TODAY;
+
   const byId = (id) => S.catalog.find((x) => x.id === id);
   const num = (v) => (v == null ? "" : String(+(+v).toFixed(2)));
-  const kFocus = (f) => S.focusLabels[f] || f;
-  const kDate = (iso) => {
-    const d = new Date(iso + "T00:00:00");
-    return `${d.getMonth() + 1}/${d.getDate()} (${"일월화수목금토"[d.getDay()]})`;
-  };
-  // 무게 칸에 숫자 대신 표시할 이름
+  // 'cardio' 는 부위가 아니라 "근력 없이 유산소만 한 날" 표시값이다.
+  const kFocus = (f) => (f === "cardio" ? "유산소" : (S.focusLabels[f] || f));
+  const wd = (isoStr) => "일월화수목금토"[new Date(isoStr + "T00:00:00").getDay()];
+  const kDate = (isoStr) => { const d = new Date(isoStr + "T00:00:00");
+    return `${d.getMonth() + 1}/${d.getDate()} (${wd(isoStr)})`; };
+
   const BW = { band: "밴드", bodyweight: "맨몸", aquabag: "아쿠아백", medball: "메드볼" };
-  // 태그 줄에 쓰는 장비 이름
   const EQUIP = {
     machine: "머신", barbell: "바벨", dumbbell: "덤벨", smith: "스미스머신",
     cable: "케이블", band: "밴드", bodyweight: "맨몸", kettlebell: "케틀벨",
@@ -43,22 +49,58 @@
 
   // 대시보드에서 URL을 복사하면 /rest/v1 같은 경로가 붙어오기 쉽다.
   // supabase-js는 경로를 스스로 붙이므로 루트만 남겨야 한다.
-  // (안 그러면 /rest/v1//auth/v1/signup → "Invalid path specified in request URL")
   function normalizeUrl(raw) {
     let u = String(raw || "").trim();
     if (!u) return "";
     u = u.replace(/^http:\/\//, "https://");
     if (!/^https?:\/\//.test(u)) u = "https://" + u;
-    try {
-      const p = new URL(u);
-      return p.protocol + "//" + p.host;   // 경로·쿼리·해시 전부 버림
-    } catch (_) {
-      return u.replace(/\/+$/, "");
-    }
+    try { const p = new URL(u); return p.protocol + "//" + p.host; }
+    catch (_) { return u.replace(/\/+$/, ""); }
   }
 
   // ---------------------------------------------------------
-  //  글자 크기 (헬스장에서 키울 수 있게)
+  //  유산소 헬퍼
+  // ---------------------------------------------------------
+  const machineById = (id) => (S.cardioCat.machines || []).find((m) => m.id === id);
+  const fieldMeta = (f) => (S.cardioCat.field_labels || {})[f] || { ko: f, unit: "", step: 1 };
+
+  // 기구가 쓰는 칸 이름 → DB 컬럼. speed/level/resist 는 모두 speed 컬럼에 들어간다.
+  const FIELD_COL = { speed: "speed", level: "speed", resist: "speed",
+                      incline: "incline", minutes: "minutes",
+                      distance: "distance_km", floors: "floors" };
+
+  // 항목 총 시간 = 반복 세트 × 구간 시간 합
+  const itemMinutes = (it) =>
+    (it.rep_count || 1) * (it.segments || []).reduce((a, sg) => a + (+sg.minutes || 0), 0);
+  const itemDistance = (it) =>
+    (it.rep_count || 1) * (it.segments || []).reduce((a, sg) => a + (+sg.distance || 0), 0);
+  const cardioMinutes = () => S.cardio.reduce((a, it) => a + itemMinutes(it), 0);
+
+  function paceText(it) {
+    const mi = itemMinutes(it), km = itemDistance(it);
+    if (!mi || !km) return "";
+    const p = mi / km;
+    return `${Math.floor(p)}'${pad(Math.round((p % 1) * 60), 2)}" /km`;
+  }
+
+  // 완료 체크된 근력 세트가 하나라도 있나
+  const anyStrengthDone = () =>
+    (S.edits || []).some((ex) => ex.sets.some((sg) => sg.done && sg.reps > 0));
+
+  // 실제로 저장될 부위. 근력을 하나도 안 했고 유산소만 있으면 'cardio'.
+  // (부위로 저장하면 추천 엔진이 그 부위를 했다고 착각한다)
+  const effFocus = () =>
+    (!anyStrengthDone() && cardioMinutes()) ? "cardio" : S.rec.focus;
+
+  function blankItem(machineId) {
+    const m = machineById(machineId);
+    const d = (m && m.default) || { rep_count: 1, segments: [{ minutes: 20 }] };
+    return { machine: machineId, rep_count: d.rep_count || 1,
+             segments: d.segments.map((x) => ({ ...x })) };
+  }
+
+  // ---------------------------------------------------------
+  //  글자 크기
   // ---------------------------------------------------------
   (function zoom() {
     const saved = localStorage.getItem("pt_fs") || "15.5px";
@@ -77,14 +119,22 @@
   //  부트
   // ---------------------------------------------------------
   async function boot() {
-    $("#mDate").textContent = TODAY + " (" + "일월화수목금토"[new Date().getDay()] + ")";
+    const di = $("#dateInput");
+    di.value = S.date; di.max = TODAY;
+    di.addEventListener("change", () => {
+      if (!di.value) { di.value = S.date; return; }
+      S.date = di.value; S.forceNew = false; S.manualFocus = null; S.salt = "";
+      buildRec(); renderAll();
+    });
 
     try {
       const res = await fetch("data/exercises.json", { cache: "no-cache" });
       const j = await res.json();
       S.catalog = j.exercises; S.focusLabels = j.focus_labels; S.patternLabels = j.pattern_labels;
+      const cres = await fetch("data/cardio.json", { cache: "no-cache" });
+      S.cardioCat = await cres.json();
     } catch (e) {
-      $("#boot").innerHTML = `<div class="msg err">종목 카탈로그(data/exercises.json)를 불러오지 못했어요.<br>${e.message}</div>`;
+      $("#boot").innerHTML = `<div class="msg err">카탈로그(data/exercises.json · data/cardio.json)를 불러오지 못했어요.<br>${e.message}</div>`;
       return;
     }
 
@@ -105,8 +155,6 @@
     if (url !== String(cfg.SUPABASE_URL).trim()) {
       console.warn("[PT] SUPABASE_URL을 루트로 보정했습니다:", cfg.SUPABASE_URL, "→", url);
     }
-
-    // CDN(jsdelivr)이 막히거나 느린 네트워크에서 안 내려온 경우
     if (!window.supabase || !window.supabase.createClient) {
       $("#boot").innerHTML = '<div class="msg err"><b>Supabase 라이브러리를 못 불러왔어요.</b><br>' +
         '네트워크가 cdn.jsdelivr.net 을 막고 있거나 연결이 끊겼습니다. ' +
@@ -134,6 +182,7 @@
           exercise_id: e.exercise_id,
           sets: e.sets.map((s) => ({ weight: s.weight, reps: s.reps, set_count: s.count, per_side: s.per_side })),
         })),
+        cardio: [],
       }));
     } catch (e) {
       $("#boot").innerHTML = `<div class="msg err">data/workouts.json을 못 읽었어요.<br>${e.message}</div>`;
@@ -168,8 +217,11 @@
 
     try { await loadHistory(); }
     catch (e) {
-      $("#boot").innerHTML = `<div class="msg err">기록을 불러오지 못했어요.<br>${e.message}` +
-        `<br><br>schema.sql을 실행했는지 확인하고, 그래도 안 되면 diagnose.html을 열어보세요.</div>`;
+      const miss = /cardio_sets/i.test(e.message || "")
+        ? "<br><br><b>supabase/migration_cardio.sql</b> 을 SQL Editor에서 실행해 주세요."
+        : "<br><br>schema.sql · migration_cardio.sql 을 실행했는지 확인하고, " +
+          "그래도 안 되면 diagnose.html을 열어보세요.";
+      $("#boot").innerHTML = `<div class="msg err">기록을 불러오지 못했어요.<br>${e.message}${miss}</div>`;
       return;
     }
     $("#boot").classList.add("hidden");
@@ -180,11 +232,27 @@
   // ---------------------------------------------------------
   //  데이터
   // ---------------------------------------------------------
+  const SEL_BASE = "id,date,focus,source,note," +
+    "workout_sets(exercise_id,seq,set_index,weight,reps,set_count,per_side)";
+  const SEL_CARDIO = ",cardio_sets(machine,seq,segment_index,label,rep_count,minutes,speed,incline,distance_km,floors)";
+
   async function loadHistory() {
-    const { data, error } = await S.sb
-      .from("workouts")
-      .select("id,date,focus,source,note,workout_sets(exercise_id,seq,set_index,weight,reps,set_count,per_side)")
-      .order("date", { ascending: false });
+    // cardio_sets 테이블이 없으면 PostgREST가 관계를 못 찾아 400을 낸다.
+    // 그때 근력 기록까지 못 불러오면 앱이 통째로 죽으므로, 유산소만 빼고 다시 시도한다.
+    // 이미 없다고 확인된 뒤에는 처음부터 유산소를 빼고 조회한다
+    // (안 그러면 저장 직후 재조회가 매번 400으로 실패한다)
+    const sel = SEL_BASE + (S.noCardioTable ? "" : SEL_CARDIO);
+    let res = await S.sb.from("workouts").select(sel).order("date", { ascending: false });
+
+    if (res.error && !S.noCardioTable) {
+      const m = (res.error.message || "") + (res.error.details || "") + (res.error.hint || "");
+      if (/cardio_sets|relationship|schema cache/i.test(m)) {
+        S.noCardioTable = true;
+        console.warn("[PT] cardio_sets 테이블이 없어 유산소 없이 불러옵니다.", res.error);
+        res = await S.sb.from("workouts").select(SEL_BASE).order("date", { ascending: false });
+      }
+    }
+    const { data, error } = res;
     if (error) throw error;
     S.history = (data || []).map((w) => {
       const groups = new Map();
@@ -195,24 +263,51 @@
           reps: r.reps, set_count: r.set_count || 1, per_side: !!r.per_side,
         });
       }
+      // 유산소: seq 별로 항목을 묶고 segment_index 순으로 구간을 붙인다
+      const citems = new Map();
+      for (const r of (w.cardio_sets || []).slice().sort((a, b) => a.seq - b.seq || a.segment_index - b.segment_index)) {
+        if (!citems.has(r.seq)) citems.set(r.seq, { machine: r.machine, rep_count: r.rep_count || 1, segments: [] });
+        citems.get(r.seq).segments.push({
+          label: r.label || null,
+          minutes: r.minutes == null ? null : +r.minutes,
+          speed: r.speed == null ? null : +r.speed,
+          incline: r.incline == null ? null : +r.incline,
+          distance: r.distance_km == null ? null : +r.distance_km,
+          floors: r.floors == null ? null : +r.floors,
+        });
+      }
       return { id: w.id, date: w.date, focus: w.focus, source: w.source, note: w.note,
-               exercises: [...groups.values()] };
+               exercises: [...groups.values()], cardio: [...citems.values()] };
     });
   }
+
+  // 추천은 '그 날짜 이전' 기록만 본다. 과거 날짜를 고르면 그 시점의 추천이 나온다.
+  const historyBefore = (d) => S.history.filter((w) => w.date < d);
+  // 그 날짜에 저장된 기록. 개인운동이 우선이고, 없으면 PT 수업 기록.
+  // (PT 기록도 파싱 오류를 고칠 수 있어야 하므로 수정 대상에 포함한다)
+  const existingOn = (d) => S.history.find((w) => w.date === d && w.source === "self") ||
+                            S.history.find((w) => w.date === d && w.source === "pt");
+  const SRC_LABEL = { self: "개인운동", pt: "PT 수업" };
 
   async function saveToday() {
     const btn = $("#save");
     const rows = S.edits.map((ex, i) => ({ ex, i }))
       .filter(({ ex }) => ex.sets.some((s) => s.done && s.reps > 0));
-    if (!rows.length) { toast("완료 체크된 세트가 없어요.", true); return; }
+    const cMin = cardioMinutes();
+    if (!rows.length && !cMin) {
+      toast("완료 체크된 세트도, 유산소 기록도 없어요.", true); return;
+    }
 
     btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
     try {
-      const existing = S.history.find((w) => w.date === TODAY && w.source === "self");
-      if (existing) await S.sb.from("workouts").delete().eq("id", existing.id);
+      const prev = existingOn(S.date);
+      // 불러온 기록을 고친 경우엔 그 기록의 종류(PT/개인)를 유지한다
+      const src = (S.mode === "edit" && prev) ? prev.source : "self";
+      const target = S.history.find((w) => w.date === S.date && w.source === src);
+      if (target) await S.sb.from("workouts").delete().eq("id", target.id);
 
       const { data: w, error: e1 } = await S.sb.from("workouts")
-        .insert({ user_id: S.user.id, date: TODAY, focus: S.rec.focus, source: "self" })
+        .insert({ user_id: S.user.id, date: S.date, focus: effFocus(), source: src })
         .select("id").single();
       if (e1) throw e1;
 
@@ -223,11 +318,34 @@
                          weight: s.weight, reps: s.reps, set_count: 1, per_side: !!s.per_side, done: true });
         });
       });
-      const { error: e2 } = await S.sb.from("workout_sets").insert(payload);
-      if (e2) throw e2;
+      if (payload.length) {
+        const { error: e2 } = await S.sb.from("workout_sets").insert(payload);
+        if (e2) throw e2;
+      }
+
+      const cpayload = [];
+      S.cardio.forEach((it, i) => {
+        const m = machineById(it.machine);
+        (it.segments || []).forEach((sg, j) => {
+          const row = { workout_id: w.id, machine: it.machine, seq: i, segment_index: j,
+                        label: sg.label || null, rep_count: it.rep_count || 1,
+                        minutes: null, speed: null, incline: null, distance_km: null, floors: null };
+          (m ? m.fields : []).forEach((f) => {
+            const v = sg[f === "distance" ? "distance" : f];
+            if (v != null && v !== "") row[FIELD_COL[f]] = +v;
+          });
+          cpayload.push(row);
+        });
+      });
+      if (cpayload.length && !S.noCardioTable) {
+        const { error: e3 } = await S.sb.from("cardio_sets").insert(cpayload);
+        if (e3) throw e3;
+      }
 
       await loadHistory();
-      toast(`저장 완료 — ${rows.length}종목 ${payload.length}세트`);
+      toast(`${kDate(S.date)} ${kFocus(effFocus())} ${SRC_LABEL[src]} 저장 — ` +
+            `${rows.length}종목 ${payload.length}세트` + (cMin ? ` · 유산소 ${cMin}분` : ""));
+      S.forceNew = false;
       buildRec(); renderAll();
     } catch (e) {
       toast("저장 실패: " + (e.message || e), true);
@@ -239,74 +357,157 @@
   function toast(msg, isErr) {
     const n = el("div", "toast " + (isErr ? "err" : "ok"), msg);
     document.body.append(n);
-    setTimeout(() => n.remove(), 3200);
+    setTimeout(() => n.remove(), 3400);
   }
 
   // ---------------------------------------------------------
-  //  추천 → 편집 상태
+  //  추천 / 기존 기록 불러오기
   // ---------------------------------------------------------
   function buildRec() {
+    const hist = historyBefore(S.date);
+    const prev = existingOn(S.date);
+    S.loaded = (prev && !S.forceNew) ? prev : null;
+
+    if (prev && !S.forceNew) {
+      // 수정 모드 — 저장된 내용을 그대로 띄운다
+      S.mode = "edit";
+      S.edits = prev.exercises.map((e) => ({
+        exercise_id: e.exercise_id,
+        sets: expand(e.sets).map((s) => ({ ...s, kind: "work", done: true })),
+      }));
+      S.cardio = (prev.cardio || []).map((it) => ({ ...it, segments: it.segments.map((x) => ({ ...x })) }));
+      const rk = E.focusRanking(hist, S.date);
+      S.rec = {
+        date: S.date,
+        // 'cardio' 는 부위가 아니므로 스탬프용 기본값만 채워둔다 (effFocus 가 실제 값을 결정)
+        focus: prev.focus === "cardio" ? rk[0].focus : prev.focus,
+        ranking: rk,
+        slots: S.edits.map((ed) => {
+          const ex = byId(ed.exercise_id);
+          return { label: "기록", exercise: ex || { id: ed.exercise_id, name: ed.exercise_id,
+                     focus: prev.focus, pattern: "-", equipment: "-" },
+                   plan: { sets: [], why: null }, daysSince: 999 };
+        }),
+      };
+      return;
+    }
+
+    S.mode = "new";
+    S.cardio = [];
     S.rec = E.recommend({
-      catalog: S.catalog, history: S.history, today: TODAY,
+      catalog: S.catalog, history: hist, today: S.date,
       focus: S.manualFocus, salt: S.salt, pinned: S.pinned,
     });
-    S.edits = S.rec.slots.filter((s) => s.exercise).map(toEdit);
+    // 후보가 없어 비어 있는 슬롯은 버린다 — 이후 인덱스가 edits와 1:1로 맞아야 한다
+    S.rec.slots = S.rec.slots.filter((s) => s.exercise);
+    S.edits = S.rec.slots.map(toEdit);
   }
-  function toEdit(slot) {
-    const flat = [];
-    (slot.plan.sets || []).forEach((s) => {
+
+  function expand(sets) {
+    const out = [];
+    (sets || []).forEach((s) => {
       for (let k = 0; k < (s.set_count || 1); k++) {
-        flat.push({ weight: s.weight, reps: s.reps, per_side: !!s.per_side, kind: s.kind, done: false });
+        out.push({ weight: s.weight, reps: s.reps, per_side: !!s.per_side });
       }
     });
-    return { exercise_id: slot.exercise.id, sets: flat };
+    return out;
   }
+
+  function toEdit(slot) {
+    return { exercise_id: slot.exercise.id,
+             sets: expand(slot.plan.sets).map((s, i) => ({
+               ...s, kind: (slot.plan.sets[0] || {}).kind === "warmup" && i === 0 ? "warmup" : "work",
+               done: false })) };
+  }
+
   function rebuildSlot(i) {
-    E.swapSlot(S.rec, i, { catalog: S.catalog, history: S.history });
+    E.swapSlot(S.rec, i, { catalog: S.catalog, history: historyBefore(S.date) });
     S.edits[i] = toEdit(S.rec.slots[i]);
+    renderToday();
+  }
+
+  function removeSlot(i) {
+    S.rec.slots.splice(i, 1);
+    S.edits.splice(i, 1);
     renderToday();
   }
 
   // ---------------------------------------------------------
   //  오늘
   // ---------------------------------------------------------
+  function renderModeBanner() {
+    const box = $("#modeBanner"); box.innerHTML = "";
+    if (S.mode !== "edit") return;
+    const src = S.loaded ? SRC_LABEL[S.loaded.source] : "";
+    const b = el("div", "msg ok");
+    b.style.display = "flex"; b.style.alignItems = "center"; b.style.gap = "8px";
+    const t = el("span");
+    t.style.flex = "1";
+    t.append(document.createTextNode(`${kDate(S.date)} ${src} 기록을 불러왔어요. 고쳐서 저장하면 덮어씁니다.`));
+    const nb = el("button", null, "추천 새로 받기");
+    nb.style.cssText = "text-decoration:underline;flex:none;color:inherit;white-space:nowrap";
+    nb.title = "화면을 그 날짜 기준 추천으로 채웁니다. 저장하기 전까지 실제 기록은 그대로예요.";
+    nb.onclick = () => { S.forceNew = true; S.salt = String(Date.now()); buildRec(); renderToday(); };
+    b.append(t, nb);
+    box.append(b);
+  }
+
   function renderStamps() {
     const box = $("#focuspick"); box.innerHTML = "";
     for (const r of S.rec.ranking) {
       const b = el("button");
-      b.setAttribute("aria-pressed", r.focus === S.rec.focus);
+      b.setAttribute("aria-pressed", effFocus() !== "cardio" && r.focus === S.rec.focus);
       b.append(el("b", null, kFocus(r.focus)),
                el("i", null, r.lastDate ? `${r.days}일 전` : "기록 없음"));
-      b.onclick = () => { S.manualFocus = r.focus; S.salt = ""; buildRec(); renderToday(); };
+      b.onclick = () => {
+        if (S.mode === "edit") { S.rec.focus = r.focus; renderToday(); return; }
+        S.manualFocus = r.focus; S.salt = ""; buildRec(); renderToday();
+      };
       box.append(b);
     }
   }
 
   function renderWhy() {
+    if (effFocus() === "cardio") {
+      $("#why").textContent = "근력 세트가 체크되지 않았어요. 이대로 저장하면 유산소 세션으로 " +
+        "기록되고, 부위 로테이션에는 영향을 주지 않습니다.";
+      return;
+    }
+    if (S.mode === "edit") {
+      $("#why").textContent = S.loaded && S.loaded.source === "pt"
+        ? "PT 수업에서 한 운동이에요. 무게·횟수를 고치면 이후 추천에도 반영됩니다."
+        : "무게·횟수를 고치거나 종목을 더하거나 뺄 수 있어요.";
+      return;
+    }
     const top = S.rec.ranking[0];
     const auto = !S.manualFocus || S.manualFocus === top.focus;
-    const done = S.history.find((w) => w.date === TODAY && w.source === "self");
     let t = auto
-      ? `${kFocus(S.rec.focus)}가 ${top.lastDate ? `${top.days}일째 안 나왔어요` : "기록에 없어요"} — 오늘 이 부위 차례.`
+      ? `${kFocus(S.rec.focus)}가 ${top.lastDate ? `${top.days}일째 안 나왔어요` : "기록에 없어요"} — 이 부위 차례.`
       : `${kFocus(S.rec.focus)}를 직접 골랐어요. 최근 이 부위에 없던 종목으로 짰습니다.`;
-    if (done) t += " 오늘 이미 저장한 기록이 있어서, 다시 저장하면 덮어씁니다.";
+    if (S.date !== TODAY) t = `${kDate(S.date)} 기준 추천이에요. ` + t;
     $("#why").textContent = t;
   }
 
+  // 날짜를 바꾸면 탭 이름도 그 날짜로 바뀐다
+  function syncDateLabel() {
+    const b = document.querySelector('nav.tabs button[data-tab=today]');
+    if (b) b.textContent = S.date === TODAY ? "오늘" : kDate(S.date).replace(/ /g, "");
+    const di = $("#dateInput");
+    if (di && di.value !== S.date) di.value = S.date;
+  }
+
   function renderToday() {
-    renderStamps(); renderWhy();
+    syncDateLabel();
+    renderModeBanner(); renderStamps(); renderWhy();
     const box = $("#slots"); box.innerHTML = "";
-    let n = 0;
 
     S.rec.slots.forEach((slot, i) => {
-      if (!slot.exercise) return;
       const ex = slot.exercise, edit = S.edits[i], plan = slot.plan;
-      if (n) box.append(el("hr", "rule"));
-      n++;
+      if (i) box.append(el("hr", "rule"));
 
       const item = el("div", "item");
       const hd = el("div", "hd");
-      hd.append(el("span", "no", pad(n, 2)), el("span", "nm", ex.name));
+      hd.append(el("span", "no", pad(i + 1, 2)), el("span", "nm", ex.name));
       if (S.pinned.includes(ex.id)) hd.append(el("span", "pin", "📌"));
       item.append(hd);
 
@@ -327,25 +528,207 @@
       if (plan.why) item.append(el("div", "note", plan.why));
 
       const foot = el("div", "exfoot");
-      const bSwap = el("button", null, "🔄 다른 종목");
-      bSwap.onclick = () => rebuildSlot(i);
-      const bPin = el("button", null, S.pinned.includes(ex.id) ? "📌 고정 해제" : "📌 항상 넣기");
+      if (S.mode === "new") {
+        const bSwap = el("button", null, "🔄 다른 종목");
+        bSwap.onclick = () => rebuildSlot(i);
+        foot.append(bSwap);
+      }
+      const bPin = el("button", null, S.pinned.includes(ex.id) ? "📌 해제" : "📌 고정");
       bPin.onclick = () => {
         S.pinned = S.pinned.includes(ex.id) ? S.pinned.filter((x) => x !== ex.id) : S.pinned.concat(ex.id);
         localStorage.setItem("pt_pinned", JSON.stringify(S.pinned));
-        buildRec(); renderToday();
+        if (S.mode === "new") buildRec();
+        renderToday();
       };
       const bAdd = el("button", null, "＋ 세트");
       bAdd.onclick = () => {
         const last = edit.sets[edit.sets.length - 1] || { weight: null, reps: 12, per_side: false };
         edit.sets.push({ ...last, kind: "work", done: false }); renderToday();
       };
-      foot.append(bSwap, bPin, bAdd);
+      const bRm = el("button", "rm", "✕");
+      bRm.setAttribute("aria-label", ex.name + " 제거");
+      bRm.title = "이 종목 제거";
+      bRm.onclick = () => removeSlot(i);
+      foot.append(bPin, bAdd, bRm);
       item.append(foot);
       box.append(item);
     });
 
+    if (!S.rec.slots.length) {
+      box.append(el("div", "empty", "종목이 없어요. ＋ 종목으로 추가하거나 🎲를 눌러보세요."));
+    }
+    renderCardio();
     renderTotals();
+  }
+
+  // ---------------------------------------------------------
+  //  유산소
+  // ---------------------------------------------------------
+  function renderCardio() {
+    const box = $("#cardio"); if (!box) return;
+    box.innerHTML = "";
+
+    if (S.noCardioTable) {
+      const b = el("div", "msg err");
+      b.innerHTML = "<b>유산소 기능이 아직 준비되지 않았어요.</b><br>" +
+        "Supabase SQL Editor에서 <code>supabase/migration_cardio.sql</code> 을 한 번 실행하고 " +
+        "새로고침하면 켜집니다. 그때까지 근력 기록은 정상 동작합니다.";
+      box.append(b);
+      return;
+    }
+
+    if (!S.cardio.length) {
+      const add = el("button", "cadd", "＋ 유산소");
+      add.onclick = () => { S.cardio.push(blankItem("treadmill")); renderCardio(); renderTotals(); };
+      box.append(add);
+
+      // 지난 유산소 기록이 있으면 그대로 불러올 수 있게
+      const last = lastCardio();
+      if (last) {
+        const again = el("button", "cadd", `↻ ${kDate(last.date)} 유산소 그대로 (${last.min}분)`);
+        again.style.marginTop = "5px";
+        again.onclick = () => {
+          S.cardio = last.items.map((it) => ({ ...it, segments: it.segments.map((x) => ({ ...x })) }));
+          renderCardio(); renderTotals();
+        };
+        box.append(again);
+      }
+      return;
+    }
+
+    const head = el("div", "chead");
+    const ttl = el("span", null, "유 산 소");
+    ttl.style.cssText = "letter-spacing:.18em;flex:1";
+    head.append(ttl, el("span", "faint tiny", cardioMinutes() + "분"));
+    box.append(head);
+
+    S.cardio.forEach((it, i) => {
+      const m = machineById(it.machine) || { fields: ["minutes"], name: it.machine };
+      const wrap = el("div");
+      wrap.style.marginTop = i ? "9px" : "5px";
+
+      // 기구 선택
+      const hd = el("div", "chead");
+      hd.append(el("span", "no", pad(i + 1, 2)));
+      const sel = el("select", "csel");
+      (S.cardioCat.machines || []).forEach((mm) => {
+        const o = el("option", null, mm.name); o.value = mm.id;
+        if (mm.id === it.machine) o.selected = true;
+        sel.append(o);
+      });
+      sel.setAttribute("aria-label", "기구");
+      sel.onchange = () => {
+        const keepMin = itemMinutes(it);
+        Object.assign(it, blankItem(sel.value));
+        if (keepMin && it.segments.length === 1) it.segments[0].minutes = keepMin;
+        renderCardio(); renderTotals();
+      };
+      hd.append(sel);
+      wrap.append(hd);
+
+      // 세트 수 (구간이 2개 이상이면 인터벌)
+      const rep = el("div", "crep");
+      rep.append(el("span", null, it.segments.length > 1 ? "인터벌 세트" : "반복"));
+      const ri = el("input", "num");
+      ri.type = "number"; ri.min = "1"; ri.step = "1"; ri.inputMode = "numeric";
+      ri.value = it.rep_count || 1; ri.style.width = "2.8em";
+      ri.setAttribute("aria-label", "세트 수");
+      ri.oninput = () => { it.rep_count = Math.max(1, +ri.value || 1); refreshCardioSums(); };
+      rep.append(ri, el("span", "u", "세트"));
+      wrap.append(rep);
+
+      // 구간들
+      it.segments.forEach((sg, j) => {
+        const row = el("div", "cseg");
+        const lb = el("span", "lb");
+        const li = el("input");
+        li.type = "text"; li.value = sg.label || ""; li.placeholder = j === 0 ? "구간" : "구간";
+        li.setAttribute("aria-label", "구간 이름");
+        li.oninput = () => { sg.label = li.value.trim() || null; };
+        lb.append(li); row.append(lb);
+
+        m.fields.forEach((f) => {
+          const meta = fieldMeta(f);
+          const fld = el("span", "fld");
+          fld.append(el("label", null, meta.ko));
+          const inp = el("input", "num");
+          inp.type = "number"; inp.min = "0"; inp.step = String(meta.step);
+          inp.inputMode = "decimal"; inp.style.width = f === "minutes" ? "2.8em" : "3.2em";
+          const key = f === "distance" ? "distance" : f;
+          inp.value = sg[key] == null ? "" : num(sg[key]);
+          inp.setAttribute("aria-label", meta.ko);
+          inp.oninput = () => { sg[key] = inp.value === "" ? null : +inp.value; refreshCardioSums(); };
+          fld.append(inp);
+          if (meta.unit) fld.append(el("span", "u", meta.unit));
+          row.append(fld);
+        });
+
+        if (it.segments.length > 1) {
+          const del = el("button", "del", "✕");
+          del.setAttribute("aria-label", "구간 삭제");
+          del.onclick = () => { it.segments.splice(j, 1); renderCardio(); renderTotals(); };
+          row.append(del);
+        }
+        wrap.append(row);
+      });
+
+      // 항목 합계
+      const sum = el("div", "csum");
+      sum.dataset.sum = String(i);
+      wrap.append(sum);
+
+      // 버튼
+      const foot = el("div", "cfoot");
+      const bSeg = el("button", null, "＋ 구간");
+      bSeg.onclick = () => {
+        const last = it.segments[it.segments.length - 1] || {};
+        it.segments.push({ ...last, label: null }); renderCardio(); renderTotals();
+      };
+      foot.append(bSeg);
+      const bRm = el("button", "rm", "✕");
+      bRm.setAttribute("aria-label", "유산소 항목 제거");
+      bRm.onclick = () => { S.cardio.splice(i, 1); renderCardio(); renderTotals(); };
+      foot.append(bRm);
+      wrap.append(foot);
+      box.append(wrap);
+    });
+
+    const add = el("button", "cadd", "＋ 유산소 항목");
+    add.style.marginTop = "8px";
+    add.onclick = () => {
+      S.cardio.push(blankItem(S.cardio[S.cardio.length - 1].machine));
+      renderCardio(); renderTotals();
+    };
+    box.append(add);
+    refreshCardioSums();
+  }
+
+  // 숫자만 바뀔 때는 전체를 다시 그리지 않는다 (입력 포커스 유지)
+  function refreshCardioSums() {
+    S.cardio.forEach((it, i) => {
+      const n2 = document.querySelector(`#cardio [data-sum="${i}"]`);
+      if (!n2) return;
+      const m = machineById(it.machine) || {};
+      const bits = [itemMinutes(it) + "분"];
+      const km = itemDistance(it); if (km) bits.push(num(km) + "km");
+      const fl = (it.rep_count || 1) * (it.segments || []).reduce((a, sg) => a + (+sg.floors || 0), 0);
+      if (fl) bits.push(fl + "층");
+      const pc = m.pace ? paceText(it) : ""; if (pc) bits.push(pc);
+      n2.innerHTML = "";
+      n2.append(el("span", null, it.segments.length > 1 ? "인터벌 합계" : "합계"),
+                el("span", null, bits.join(" · ")));
+    });
+    const h = $("#cardio .chead .faint");
+    if (h) h.textContent = cardioMinutes() + "분";
+    renderTotals();
+  }
+
+  // 가장 최근에 유산소를 한 세션
+  function lastCardio() {
+    const w = S.history.find((x) => x.date < S.date && (x.cardio || []).length);
+    if (!w) return null;
+    return { date: w.date, items: w.cardio,
+             min: w.cardio.reduce((a, it) => a + itemMinutes(it), 0) };
   }
 
   function setLine(ex, edit, s, j, workNo) {
@@ -393,14 +776,23 @@
     return tr;
   }
 
-  function renderTotals() {
-    const box = $("#totals"); if (!box) return;
+  function stats() {
     let sets = 0, vol = 0, doneSets = 0, doneVol = 0;
     S.edits.forEach((ex) => ex.sets.forEach((s) => {
       const v = (s.weight || 0) * (s.reps || 0);
       sets++; vol += v;
       if (s.done) { doneSets++; doneVol += v; }
     }));
+    return { sets, vol, doneSets, doneVol };
+  }
+
+  function slipNo() {
+    return S.history.filter((w) => w.date <= S.date).length + (existingOn(S.date) ? 0 : 1);
+  }
+
+  function renderTotals() {
+    const box = $("#totals"); if (!box) return;
+    const st = stats();
     box.innerHTML = "";
     const row = (k, v, cls) => {
       const d = el("div", "total" + (cls ? " " + cls : ""));
@@ -408,15 +800,19 @@
       return d;
     };
     box.append(row("종목", String(S.edits.length), "dim"));
-    box.append(row("총 세트", `${doneSets} / ${sets}`, "dim"));
-    box.append(row("총 볼륨", Math.round(vol).toLocaleString() + " kg", "big"));
-    if (doneSets) box.append(row("완료 볼륨", Math.round(doneVol).toLocaleString() + " kg", "dim"));
+    box.append(row("총 세트", `${st.doneSets} / ${st.sets}`, "dim"));
+    box.append(row("총 볼륨", Math.round(st.vol).toLocaleString() + " kg", "big"));
+    if (st.doneSets) box.append(row("완료 볼륨", Math.round(st.doneVol).toLocaleString() + " kg", "dim"));
+    const cm = cardioMinutes();
+    if (cm) box.append(row("유산소", cm + " 분", "dim"));
     const p = el("p", "tiny faint", "＊ 무게 × 횟수 × 세트 합계 · 씩 표기는 한쪽 기준");
     p.style.margin = "2px 0 0"; box.append(p);
 
-    const idx = S.history.filter((w) => w.source === "self").length + 1;
-    $("#mNo").textContent = "NO. " + pad(idx, 5);
-    $("#barnum").textContent = TODAY.replace(/-/g, "") + " " + S.rec.focus.toUpperCase() + " " + pad(idx, 3);
+    const n = slipNo();
+    $("#mNo").textContent = "NO. " + pad(n, 5);
+    $("#barnum").textContent = S.date.replace(/-/g, "") + " " + effFocus().toUpperCase() + " " + pad(n, 3);
+    // 체크 상태에 따라 부위 표시가 달라지므로 스탬프와 안내문도 함께 갱신
+    if ($("#focuspick").children.length) { renderStamps(); renderWhy(); }
   }
 
   // ---------------------------------------------------------
@@ -429,8 +825,16 @@
       if (i) box.append(el("hr", "rule"));
       const c = el("div", "log");
       const hd = el("div", "hd");
-      hd.append(el("span", null, kDate(w.date) + "  " + kFocus(w.focus)),
-                el("span", "src", w.source === "pt" ? "PT 수업" : "개인"));
+      const left = el("button", null, kDate(w.date) + "  " + kFocus(w.focus));
+      left.style.cssText = "text-align:left;text-decoration:underline dotted";
+      left.title = "이 날짜로 이동";
+      left.onclick = () => {
+        S.date = w.date; S.forceNew = false; S.manualFocus = null; S.salt = "";
+        $("#dateInput").value = w.date;
+        buildRec();
+        document.querySelector('nav.tabs button[data-tab=today]').click();
+      };
+      hd.append(left, el("span", "src", w.source === "pt" ? "PT 수업" : "개인"));
       c.append(hd);
       for (const e of w.exercises) {
         const ent = byId(e.exercise_id);
@@ -451,8 +855,7 @@
   // ---------------------------------------------------------
   //  추이
   // ---------------------------------------------------------
-  function renderTrend() {
-    const box = $("#tab-trend"); box.innerHTML = "";
+  function trendRows() {
     const rows = [];
     for (const ex of S.catalog) {
       const pts = E.sessionsOf(ex.id, S.history)
@@ -461,31 +864,142 @@
       if (pts.length < 2) continue;
       rows.push({ ex, pts, delta: pts[pts.length - 1].w - pts[0].w, last: pts[pts.length - 1] });
     }
-    if (!rows.length) { box.append(el("div", "empty", "추이를 그릴 만큼 기록이 쌓이지 않았어요.")); return; }
     rows.sort((a, b) => b.pts.length - a.pts.length || Math.abs(b.delta) - Math.abs(a.delta));
+    return rows;
+  }
+
+  // 월요일 시작 주의 첫날
+  function weekStart(isoStr) {
+    const d = new Date(isoStr + "T00:00:00");
+    const dow = (d.getDay() + 6) % 7;          // 월=0
+    d.setDate(d.getDate() - dow);
+    return iso(d);
+  }
+
+  // 주당 총 유산소 분 (최근 12주)
+  function cardioWeekly() {
+    const byWeek = new Map();
+    for (const w of S.history) {
+      const mins = (w.cardio || []).reduce((a, it) => a + itemMinutes(it), 0);
+      if (!mins) continue;
+      const k = weekStart(w.date);
+      byWeek.set(k, (byWeek.get(k) || 0) + mins);
+    }
+    if (!byWeek.size) return null;
+    const keys = [...byWeek.keys()].sort();
+    // 기록이 없는 중간 주는 0으로 채워 실제 추이를 보이게 한다
+    const out = [];
+    let cur = keys[0];
+    const end = keys[keys.length - 1];
+    let guard = 0;
+    while (cur <= end && guard++ < 200) {
+      out.push({ date: cur, w: byWeek.get(cur) || 0 });
+      const d = new Date(cur + "T00:00:00"); d.setDate(d.getDate() + 7); cur = iso(d);
+    }
+    return out.slice(-12);
+  }
+
+  function renderCardioTrend(box) {
+    const pts = cardioWeekly();
+    if (!pts || pts.length < 2) return false;
+    const first = pts[0].w, last = pts[pts.length - 1].w;
+    const good = last >= first;
+    const c = el("div", "trend");
+    const hd = el("div", "hd");
+    const nm = el("span", null, "유산소 · 주간 총시간"); nm.style.flex = "1";
+    hd.append(nm);
+    hd.append(el("span", "d " + (last === first ? "dim" : good ? "up" : "down"),
+      `${first}분 → ${last}분`));
+    const pick = el("button", "pick", "[ ]");
+    pick.dataset.id = "__cardio__";
+    pick.setAttribute("aria-label", "유산소 선택");
+    pick.onclick = () => {
+      if (S.trendSel.has("__cardio__")) S.trendSel.delete("__cardio__"); else S.trendSel.add("__cardio__");
+      renderTrend();
+    };
+    hd.append(pick);
+    c.append(hd);
+    c.append(spark(pts, good));
+    const tot = pts.reduce((a, p) => a + p.w, 0);
+    c.append(el("div", "tiny faint",
+      `${pts.length}주 · 합계 ${tot}분 · 주 평균 ${Math.round(tot / pts.length)}분`));
+    box.append(c);
+    return true;
+  }
+
+  function renderTrend() {
+    const box = $("#tab-trend"); box.innerHTML = "";
+    const rows = trendRows();
+    const hasCardio = (cardioWeekly() || []).length >= 2;
+    if (!rows.length && !hasCardio) { box.append(el("div", "empty", "추이를 그릴 만큼 기록이 쌓이지 않았어요.")); return; }
+
+    const bar = el("div", "tbar");
+    const all = el("button", null, "전체 선택");
+    const none = el("button", null, "해제");
+    const shot = el("button", "pri", "📷 저장");
+    const sync = () => {
+      const valid = new Set(rows.map((r) => r.ex.id));
+      if (hasCardio) valid.add("__cardio__");
+      [...S.trendSel].forEach((id) => { if (!valid.has(id)) S.trendSel.delete(id); });
+      shot.textContent = `📷 저장 (${S.trendSel.size})`;
+      shot.disabled = S.trendSel.size === 0;
+      box.querySelectorAll(".trend .pick").forEach((b) => {
+        const on = S.trendSel.has(b.dataset.id);
+        b.setAttribute("aria-pressed", on);
+        b.textContent = on ? "[×]" : "[ ]";
+      });
+    };
+    all.onclick = () => {
+      rows.forEach((r) => S.trendSel.add(r.ex.id));
+      if (hasCardio) S.trendSel.add("__cardio__");
+      renderTrend();
+    };
+    none.onclick = () => { S.trendSel.clear(); renderTrend(); };
+    shot.onclick = () => exportTrend(rows.filter((r) => S.trendSel.has(r.ex.id)),
+                                     S.trendSel.has("__cardio__"));
+    bar.append(all, none, shot);
+    box.append(bar);
+
+    if (renderCardioTrend(box) && rows.length) box.append(el("hr", "rule dbl"));
 
     rows.forEach((r, i) => {
-      if (i) box.append(el("hr", "rule"));
+      box.append(el("hr", "rule"));
       const c = el("div", "trend");
       const hd = el("div", "hd");
-      hd.append(el("span", null, r.ex.name));
+      const nm = el("span", null, r.ex.name); nm.style.flex = "1";
+      hd.append(nm);
       const good = E.ASSISTED.has(r.ex.id) ? r.delta < 0 : r.delta > 0;
       hd.append(el("span", "d " + (r.delta === 0 ? "dim" : good ? "up" : "down"),
         `${num(r.pts[0].w)} → ${num(r.last.w)}kg` +
         (r.delta === 0 ? "" : ` (${r.delta > 0 ? "+" : ""}${num(r.delta)})`)));
+      const pick = el("button", "pick", "[ ]");
+      pick.dataset.id = r.ex.id;
+      pick.setAttribute("aria-label", r.ex.name + " 선택");
+      pick.onclick = () => {
+        if (S.trendSel.has(r.ex.id)) S.trendSel.delete(r.ex.id); else S.trendSel.add(r.ex.id);
+        sync();
+      };
+      hd.append(pick);
       c.append(hd);
       c.append(spark(r.pts, good));
       c.append(el("div", "tiny faint", `${r.pts.length}회 · 마지막 ${kDate(r.last.date)}`));
       box.append(c);
     });
+    sync();
+  }
+
+  function sparkPath(pts, W, H) {
+    const ws = pts.map((p) => p.w);
+    const lo = Math.min(...ws), hi = Math.max(...ws), span = hi - lo || 1;
+    const X = (i) => 3 + (i * (W - 6)) / Math.max(pts.length - 1, 1);
+    const Y = (w) => H - 3 - ((w - lo) / span) * (H - 6);
+    return { d: pts.map((p, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(p.w).toFixed(1)}`).join(" "),
+             cx: X(pts.length - 1).toFixed(1), cy: Y(pts[pts.length - 1].w).toFixed(1) };
   }
 
   function spark(pts, good) {
-    const W = 300, H = 34, P = 3;
-    const ws = pts.map((p) => p.w);
-    const lo = Math.min(...ws), hi = Math.max(...ws), span = hi - lo || 1;
-    const X = (i) => P + (i * (W - P * 2)) / Math.max(pts.length - 1, 1);
-    const Y = (w) => H - P - ((w - lo) / span) * (H - P * 2);
+    const W = 300, H = 34;
+    const g = sparkPath(pts, W, H);
     const NS = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(NS, "svg");
     svg.setAttribute("class", "spark");
@@ -493,16 +1007,30 @@
     svg.setAttribute("preserveAspectRatio", "none");
     const col = good ? "var(--hi)" : "var(--warn)";
     const path = document.createElementNS(NS, "path");
-    path.setAttribute("d", pts.map((p, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(p.w).toFixed(1)}`).join(" "));
+    path.setAttribute("d", g.d);
     path.setAttribute("fill", "none"); path.setAttribute("stroke", col);
     path.setAttribute("stroke-width", "1.5");
     path.setAttribute("vector-effect", "non-scaling-stroke");
     svg.append(path);
     const dot = document.createElementNS(NS, "circle");
-    dot.setAttribute("cx", X(pts.length - 1)); dot.setAttribute("cy", Y(pts[pts.length - 1].w));
+    dot.setAttribute("cx", g.cx); dot.setAttribute("cy", g.cy);
     dot.setAttribute("r", "2"); dot.setAttribute("fill", col);
     svg.append(dot);
     return svg;
+  }
+
+  // html2canvas는 CSS 변수를 쓴 인라인 SVG를 자주 놓친다.
+  // 캡처용으로는 색을 하드코딩한 SVG를 data URL <img>로 바꿔 넣는다.
+  function sparkImg(pts, good, W, H) {
+    const g = sparkPath(pts, W, H);
+    const col = good ? HI : WARN;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">` +
+      `<path d="${g.d}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="round"/>` +
+      `<circle cx="${g.cx}" cy="${g.cy}" r="2.2" fill="${col}"/></svg>`;
+    const img = new Image(W, H);
+    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+    img.style.cssText = `display:block;width:100%;height:${H}px;margin:2px 0`;
+    return img;
   }
 
   function renderAll() {
@@ -512,11 +1040,256 @@
   }
 
   // ---------------------------------------------------------
+  //  이미지 저장
+  // ---------------------------------------------------------
+  function paperHead(title, sub) {
+    const box = el("div");
+    const c = el("div", "c");
+    c.append(el("p", "brand", title));
+    if (sub) c.append(el("p", "tagline dim tiny", sub));
+    box.append(c, el("hr", "rule dbl"));
+    return box;
+  }
+  function metaRow(k, v) {
+    const d = el("div", "meta");
+    d.append(el("span", "k", k), el("span", "lead"), el("span", "v", v));
+    return d;
+  }
+  function barcodeBlock(numText) {
+    const c = el("div", "c");
+    c.append(el("hr", "rule solid"));
+    const bc = el("div", "barcode"); c.append(bc);
+    c.append(el("p", "barnum", numText));
+    return c;
+  }
+
+  // 입력 필드를 정적 텍스트로 바꾼 캡처 전용 영수증
+  function buildReceiptNode() {
+    const paper = el("div", "paper");
+    paper.append(paperHead("＊ 오늘의 운동 ＊", "P T   P R E S C R I P T I O N"));
+    paper.append(metaRow("발행", S.date + " (" + wd(S.date) + ")"));
+    paper.append(metaRow("전표", "NO. " + pad(slipNo(), 5)));
+    paper.append(metaRow("회원", S.demo ? "미리보기" : (S.user ? S.user.email.split("@")[0] : "-")));
+    paper.append(el("hr", "rule"));
+
+    const st = el("div", "c");
+    const stamp = el("div");
+    stamp.style.cssText = "display:inline-block;padding:5px 16px 4px;margin:2px 0 4px;" +
+      "border:2px solid var(--ink);letter-spacing:.22em;font-size:1.16em;transform:rotate(-1.2deg)";
+    stamp.textContent = kFocus(effFocus());
+    st.append(stamp);
+    paper.append(st, el("hr", "rule"));
+
+    S.rec.slots.forEach((slot, i) => {
+      const ex = slot.exercise, edit = S.edits[i];
+      if (i) paper.append(el("hr", "rule"));
+      const item = el("div", "item");
+      const hd = el("div", "hd");
+      hd.append(el("span", "no", pad(i + 1, 2)), el("span", "nm", ex.name));
+      item.append(hd);
+      item.append(el("div", "tag",
+        (S.patternLabels[ex.pattern] || ex.pattern) + " · " + (EQUIP[ex.equipment] || ex.equipment)));
+
+      let workNo = 0;
+      edit.sets.forEach((s) => {
+        if (s.kind !== "warmup") workNo++;
+        const tr = el("div", "setline" + (s.kind === "warmup" ? " warm" : "") + (s.done ? " done" : ""));
+        tr.append(el("span", "lbl", s.kind === "warmup" ? "워밍업" : workNo + "세트"));
+        const w = el("span", "bw",
+          s.weight == null ? (BW[ex.equipment] || "맨몸") : num(s.weight) + "kg" + (s.per_side ? "씩" : ""));
+        tr.append(w, el("span", "x", "×"));
+        const r = el("span", "bw", String(s.reps == null ? "-" : s.reps) + "회");
+        r.style.width = "3.6em";
+        tr.append(r, el("span", "box", s.done ? "[×]" : "[ ]"));
+        item.append(tr);
+      });
+      paper.append(item);
+    });
+
+    // 유산소
+    if (S.cardio.length) {
+      paper.append(el("hr", "rule"));
+      const ch = el("div", "chead");
+      const t = el("span", null, "유 산 소");
+      t.style.cssText = "letter-spacing:.18em;flex:1";
+      ch.append(t, el("span", "faint tiny", cardioMinutes() + "분"));
+      paper.append(ch);
+
+      S.cardio.forEach((it, i) => {
+        const m = machineById(it.machine) || { fields: [], name: it.machine };
+        const w2 = el("div"); w2.style.marginTop = "4px";
+        const hd = el("div", "hd");
+        hd.append(el("span", "no", pad(i + 1, 2)), el("span", "nm", m.name));
+        w2.append(hd);
+        if (it.segments.length > 1 || (it.rep_count || 1) > 1) {
+          w2.append(el("div", "tag", `${it.segments.length > 1 ? "인터벌 " : ""}${it.rep_count || 1}세트`));
+        }
+        it.segments.forEach((sg) => {
+          const row = el("div", "setline");
+          row.append(el("span", "lbl", sg.label || "구간"));
+          const bits = m.fields.map((f) => {
+            const key = f === "distance" ? "distance" : f;
+            const v = sg[key]; if (v == null || v === "") return null;
+            const meta = fieldMeta(f);
+            return `${meta.ko} ${num(v)}${meta.unit}`;
+          }).filter(Boolean);
+          const b = el("span", null, bits.join(" · "));
+          b.style.cssText = "flex:1;text-align:right;font-size:.9em";
+          row.append(b);
+          w2.append(row);
+        });
+        const sum = el("div", "csum");
+        const km = itemDistance(it);
+        const fl = (it.rep_count || 1) * it.segments.reduce((a, sg) => a + (+sg.floors || 0), 0);
+        const bits = [itemMinutes(it) + "분"];
+        if (km) bits.push(num(km) + "km");
+        if (fl) bits.push(fl + "층");
+        if (m.pace && paceText(it)) bits.push(paceText(it));
+        sum.append(el("span", null, "합계"), el("span", null, bits.join(" · ")));
+        w2.append(sum);
+        paper.append(w2);
+      });
+    }
+
+    paper.append(el("hr", "rule dbl"));
+    const st2 = stats();
+    const tot = (k, v, cls) => {
+      const d = el("div", "total" + (cls ? " " + cls : ""));
+      d.append(el("span", null, k), el("span", null, v));
+      return d;
+    };
+    paper.append(tot("종목", String(S.edits.length), "dim"));
+    paper.append(tot("총 세트", `${st2.doneSets} / ${st2.sets}`, "dim"));
+    paper.append(tot("총 볼륨", Math.round(st2.vol).toLocaleString() + " kg", "big"));
+    if (st2.doneSets) paper.append(tot("완료 볼륨", Math.round(st2.doneVol).toLocaleString() + " kg", "dim"));
+    if (cardioMinutes()) paper.append(tot("유산소", cardioMinutes() + " 분", "dim"));
+
+    const foot = el("div", "c");
+    foot.append(el("p", "tiny dim", "교환·환불 불가 · 근육통은 정상입니다"));
+    foot.querySelector("p").style.margin = "9px 0 0";
+    paper.append(foot);
+    paper.append(barcodeBlock(S.date.replace(/-/g, "") + " " + effFocus().toUpperCase() + " " + pad(slipNo(), 3)));
+    return paper;
+  }
+
+  function buildTrendNode(rows, withCardio) {
+    const paper = el("div", "paper");
+    paper.append(paperHead("＊ 중량 추이 ＊", "P R O G R E S S   R E P O R T"));
+    paper.append(metaRow("발행", TODAY + " (" + wd(TODAY) + ")"));
+    paper.append(metaRow("종목", rows.length + (withCardio ? " 개 + 유산소" : " 개")));
+    paper.append(metaRow("기간", (S.history.length ? S.history[S.history.length - 1].date : "-") + " ~ " +
+                                 (S.history.length ? S.history[0].date : "-")));
+    paper.append(el("hr", "rule"));
+
+    if (withCardio) {
+      const pts = cardioWeekly() || [];
+      if (pts.length >= 2) {
+        const first = pts[0].w, last = pts[pts.length - 1].w, good = last >= first;
+        const c = el("div", "trend");
+        const hd = el("div", "hd");
+        const nm = el("span", null, "유산소 · 주간 총시간"); nm.style.flex = "1";
+        hd.append(nm);
+        const dd = el("span", "d", `${first}분 → ${last}분`);
+        dd.style.color = last === first ? "var(--ink-2)" : (good ? HI : WARN);
+        hd.append(dd);
+        c.append(hd);
+        c.append(sparkImg(pts, good, 340, 34));
+        const tot = pts.reduce((a, p) => a + p.w, 0);
+        c.append(el("div", "tiny faint",
+          `${pts.length}주 · 합계 ${tot}분 · 주 평균 ${Math.round(tot / pts.length)}분`));
+        paper.append(c);
+        if (rows.length) paper.append(el("hr", "rule dbl"));
+      }
+    }
+
+    rows.forEach((r, i) => {
+      if (i) paper.append(el("hr", "rule"));
+      const c = el("div", "trend");
+      const hd = el("div", "hd");
+      const nm = el("span", null, r.ex.name); nm.style.flex = "1";
+      hd.append(nm);
+      const good = E.ASSISTED.has(r.ex.id) ? r.delta < 0 : r.delta > 0;
+      const d = el("span", "d", `${num(r.pts[0].w)} → ${num(r.last.w)}kg` +
+        (r.delta === 0 ? "" : ` (${r.delta > 0 ? "+" : ""}${num(r.delta)})`));
+      d.style.color = r.delta === 0 ? "var(--ink-2)" : (good ? HI : WARN);
+      hd.append(d);
+      c.append(hd);
+      c.append(sparkImg(r.pts, good, 340, 34));
+      c.append(el("div", "tiny faint", `${r.pts.length}회 · 마지막 ${kDate(r.last.date)}`));
+      paper.append(c);
+    });
+
+    paper.append(el("hr", "rule dbl"));
+    const tot = el("div", "total dim");
+    tot.append(el("span", null, "누적 세션"), el("span", null, S.history.length + " 회"));
+    paper.append(tot);
+    paper.append(barcodeBlock("TREND " + TODAY.replace(/-/g, "")));
+    return paper;
+  }
+
+  async function exportNode(node, filename, btn) {
+    const label = btn ? btn.textContent : null;
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>'; }
+    const stage = $("#capture");
+    stage.innerHTML = "";
+    stage.append(node);
+    try {
+      if (!window.html2canvas) throw new Error("이미지 라이브러리(html2canvas)를 못 불러왔어요.");
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      // data URL 이미지 로딩 대기.
+      // 어떤 이유로든 onload/onerror가 안 오면 영원히 멈추므로 타임아웃을 둔다.
+      await Promise.all([...node.querySelectorAll("img")].map((im) =>
+        im.complete ? null : new Promise((res) => {
+          const done = () => { clearTimeout(tm); res(); };
+          const tm = setTimeout(done, 1500);
+          im.onload = done; im.onerror = done;
+        })));
+      await new Promise((r) => setTimeout(r, 60));
+
+      const canvas = await window.html2canvas(node, {
+        backgroundColor: PAPER, scale: 2, useCORS: true, logging: false,
+        width: node.offsetWidth, height: node.offsetHeight,
+      });
+      const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
+      if (!blob) throw new Error("이미지 변환에 실패했어요.");
+
+      // 폰에서는 공유 시트가 사진 저장 경로. 안 되면 다운로드로 폴백.
+      try {
+        const file = new File([blob], filename, { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: filename });
+          toast("공유 시트를 열었어요.");
+          return;
+        }
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = el("a"); a.href = url; a.download = filename;
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      toast("이미지를 저장했어요 — " + filename);
+    } catch (e) {
+      toast("이미지 저장 실패: " + (e.message || e), true);
+    } finally {
+      stage.innerHTML = "";
+      if (btn) { btn.disabled = false; btn.textContent = label; }
+    }
+  }
+
+  const exportReceipt = () => exportNode(buildReceiptNode(), `pt-${S.date}.png`, $("#shot"));
+  const exportTrend = (rows, withCardio) => {
+    if (!rows.length && !withCardio) { toast("종목을 하나 이상 골라주세요.", true); return; }
+    exportNode(buildTrendNode(rows, withCardio), `pt-trend-${TODAY}.png`, $("#tab-trend .tbar .pri"));
+  };
+
+  // ---------------------------------------------------------
   //  종목 추가
   // ---------------------------------------------------------
   function addExercise() {
     const used = new Set(S.edits.map((e) => e.exercise_id));
     const opts = S.catalog.filter((x) => !used.has(x.id));
+    if (!opts.length) { toast("추가할 종목이 없어요.", true); return; }
 
     const wrap = el("div");
     Object.assign(wrap.style, { position: "fixed", left: "12px", right: "12px", top: "10%",
@@ -548,7 +1321,9 @@
     no.onclick = close;
     ok.onclick = () => {
       const ex = byId(sel.value);
-      const plan = E.suggestSets(ex.id, S.history, null);
+      const plan = S.mode === "edit"
+        ? { sets: [{ weight: null, reps: 12, set_count: 3, kind: "work", per_side: false }], why: null }
+        : E.suggestSets(ex.id, historyBefore(S.date), null);
       S.rec.slots.push({ label: "직접 추가", exercise: ex, plan, daysSince: 999, alternatives: [] });
       S.edits.push(toEdit({ exercise: ex, plan }));
       close(); renderToday();
@@ -570,13 +1345,18 @@
     S.tab = t.dataset.tab;
     document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", b === t));
     ["today", "log", "trend"].forEach((k) => $("#tab-" + k).classList.toggle("hidden", k !== S.tab));
+    if (S.tab === "today") renderToday();
     if (S.tab === "log") renderLog();
     if (S.tab === "trend") renderTrend();
   });
 
-  $("#reroll").onclick = () => { S.salt = String(Date.now()); buildRec(); renderToday(); };
+  $("#reroll").onclick = () => {
+    S.forceNew = true; S.salt = String(Date.now());
+    buildRec(); renderToday();
+  };
   $("#save").onclick = saveToday;
   $("#addEx").onclick = addExercise;
+  $("#shot").onclick = exportReceipt;
 
   async function doAuth(kind) {
     const email = $("#email").value.trim(), password = $("#pw").value;

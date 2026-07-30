@@ -135,6 +135,28 @@ input.num:focus{outline:0;border-bottom:1px solid var(--ink);background:var(--pa
                color:var(--ink-2);letter-spacing:.02em}
 .exfoot button:active{background:var(--paper-2)}
 
+/* 유산소 */
+.cadd{width:100%;border:1px dashed var(--line);padding:8px 4px;font-size:.85em;
+      color:var(--ink-2);letter-spacing:.04em}
+.cadd:active{background:var(--paper-2)}
+.chead{display:flex;align-items:baseline;gap:6px;margin-top:2px}
+.chead .no{color:var(--ink-3);flex:none}
+.csel{flex:1;background:transparent;border:0;border-bottom:1px dotted var(--line);
+      font-family:var(--disp);font-size:1em;color:var(--ink);padding:1px 0}
+.csel:focus{outline:0;border-bottom:1px solid var(--ink)}
+.crep{display:flex;align-items:center;gap:4px;font-size:.82em;color:var(--ink-2);margin:3px 0 1px}
+.cseg{display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:2px 0}
+.cseg .lb{width:4.2em;flex:none}
+.cseg .lb input{width:100%;background:transparent;border:0;border-bottom:1px dotted var(--line);
+      font-family:var(--disp);font-size:.86em;color:var(--ink-2);padding:1px 0}
+.cseg .fld{display:flex;align-items:center;gap:1px;flex:none}
+.cseg .fld label{font-size:.68em;color:var(--ink-3);letter-spacing:0}
+.cseg .del{margin-left:auto;color:var(--ink-3);font-size:.85em;padding:2px 0 2px 6px}
+.cfoot{display:flex;gap:5px;margin-top:5px}
+.cfoot button{flex:1;border:1px solid var(--line);padding:5px 2px;font-size:.74em;color:var(--ink-2)}
+.cfoot button.rm{flex:0 0 auto;padding:5px 9px;color:var(--warn);border-color:var(--warn)}
+.csum{display:flex;justify-content:space-between;font-size:.85em;color:var(--ink-2);margin-top:3px}
+
 .total{display:flex;justify-content:space-between;letter-spacing:.03em}
 .total.big{font-size:1.24em}
 
@@ -187,6 +209,22 @@ svg.spark{display:block;width:100%;height:34px;overflow:visible;margin:2px 0}
 .toast.ok{background:var(--hi-bg);color:var(--hi);border-color:var(--hi)}
 .toast.err{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
 
+input[type=date]{background:transparent;border:0;border-bottom:1px dotted var(--line);
+  font-family:var(--disp);font-size:1em;color:var(--ink);padding:1px 2px;
+  -webkit-appearance:none;appearance:none;min-width:9.5em;text-align:right}
+input[type=date]:focus{outline:0;border-bottom:1px solid var(--ink);background:var(--paper-2)}
+.exfoot button.rm{flex:0 0 auto;padding:5px 9px;color:var(--warn);border-color:var(--warn)}
+
+.trend .pick{flex:none;padding:0 0 0 8px;color:var(--ink-3);letter-spacing:-.04em}
+.trend .pick[aria-pressed=true]{color:var(--hi)}
+.tbar{display:flex;gap:5px;align-items:center;margin:11px 0 0}
+.tbar button{border:1px solid var(--line);padding:5px 9px;font-size:.78em;color:var(--ink-2)}
+.tbar button.pri{background:var(--ink);color:var(--paper);border-color:var(--ink);margin-left:auto}
+.tbar button:disabled{opacity:.4}
+
+#capture{position:fixed;left:-10000px;top:0;width:400px;z-index:-1;pointer-events:none}
+#capture .paper{max-width:400px}
+
 .tear{width:100%;max-width:var(--w);text-align:center;color:#39404e;letter-spacing:.3em;
       font-size:11px;padding:11px 0 0;font-family:ui-monospace,monospace}
 </style>
@@ -202,7 +240,7 @@ svg.spark{display:block;width:100%;height:34px;overflow:visible;margin:2px 0}
 
   <hr class="rule dbl">
 
-  <div class="meta"><span class="k">발행</span><span class="lead"></span><span class="v" id="mDate">—</span></div>
+  <div class="meta"><span class="k">발행</span><span class="lead"></span><span class="v"><input type="date" id="dateInput" aria-label="운동 날짜"></span></div>
   <div class="meta"><span class="k">전표</span><span class="lead"></span><span class="v" id="mNo">—</span></div>
   <div class="meta"><span class="k">회원</span><span class="lead"></span><span class="v" id="mWho">—</span></div>
 
@@ -252,16 +290,22 @@ svg.spark{display:block;width:100%;height:34px;overflow:visible;margin:2px 0}
 
     <section id="tab-today">
       <div id="demoBanner"></div>
+      <div id="modeBanner"></div>
       <div class="stamps" id="focuspick"></div>
       <p class="why" id="why"></p>
       <hr class="rule">
       <div id="slots"></div>
+      <hr class="rule">
+      <div id="cardio"></div>
       <hr class="rule dbl">
       <div id="totals"></div>
       <div class="acts">
         <button class="icon" id="reroll" title="다른 조합으로">🎲</button>
         <button id="addEx">＋ 종목</button>
         <button class="pri" id="save">저 장</button>
+      </div>
+      <div class="acts">
+        <button id="shot">📷 영수증 이미지로 저장</button>
       </div>
     </section>
 
@@ -280,9 +324,12 @@ svg.spark{display:block;width:100%;height:34px;overflow:visible;margin:2px 0}
 
 <div class="tear">- - - - - - - - - ✂ - - - - - - - - -</div>
 
+<div id="capture" aria-hidden="true"></div>
+
 <script src="config.js"></script>
 <script src="engine.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

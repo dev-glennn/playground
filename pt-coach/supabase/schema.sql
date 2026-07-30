@@ -8,7 +8,8 @@ create table if not exists public.workouts (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
   date       date not null,
-  focus      text not null check (focus in ('lower','back','push')),
+  focus      text not null check (focus in ('lower','back','push','cardio')),
+                                             -- 'cardio' = 유산소만 한 날
   note       text,
   source     text not null default 'self',   -- 'pt' = PT쌤 수업, 'self' = 개인운동
   created_at timestamptz not null default now(),
