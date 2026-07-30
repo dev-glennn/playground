@@ -120,6 +120,15 @@ window.PT_CONFIG = {
 > 여러 번 실행해도 안전합니다 — `source='pt'` 인 기존 데이터를 지우고 다시 넣기 때문에,
 > 직접 기록한 개인운동(`source='self'`)은 지워지지 않습니다.
 
+## 6-b. 유산소 테이블 추가 (1분)
+
+1. **SQL Editor** → **New query**
+2. `supabase/migration_cardio.sql` 전체를 붙여넣고 **Run**
+3. `Success. No rows returned` 이 나오면 성공
+
+> 이걸 실행하지 않으면 유산소 칸에 입력해도 저장할 때 `relation "cardio_sets" does not exist`
+> 오류가 납니다. 여러 번 실행해도 안전합니다.
+
 ## 7. 로컬에서 전부 검증 (2분) — push 전 필수
 
 `http://localhost:8000/diagnose.html` 를 열고, 5단계에서 만든 이메일·비밀번호를 넣고 **진단 시작**.
@@ -180,6 +189,7 @@ iPhone Safari에서 위 주소 열기 → 공유 버튼 → **홈 화면에 추�
 | `Supabase 설정이 필요해요` | `config.js`에 `여기에...`가 남아 있거나 키가 비어 있음 |
 | `종목 카탈로그를 불러오지 못했어요` | `file://`로 열었음 → `python3 -m http.server`로 열기 |
 | `relation "workouts" does not exist` | 2단계 `schema.sql` 실행 안 됨 |
+| `relation "cardio_sets" does not exist` | 6-b단계 `migration_cardio.sql` 실행 안 됨 |
 | 로그인은 되는데 기록이 텅 빔 | 6단계 `seed.sql` 실행 안 됨 |
 | `Email not confirmed` | 3단계에서 Confirm email 끄기, 또는 메일 링크 클릭 |
 | `먼저 앱에서 회원가입...` 오류 | 5단계(계정 만들기)를 6단계보다 먼저 해야 함 |
