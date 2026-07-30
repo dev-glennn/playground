@@ -17,6 +17,9 @@
     history: [], rec: null, edits: null,
     date: null, mode: "new", forceNew: false, loaded: null,
     noCardioTable: false,   // migration_cardio.sql 미실행 감지
+    calMonth: null,         // 'YYYY-MM' 보고 있는 달
+    calSel: null,           // 선택한 날짜
+    monPick: false,         // 월 선택 열림
     salt: "", manualFocus: null,
     pinned: JSON.parse(localStorage.getItem("pt_pinned") || "[]"),
     trendSel: new Set(),
@@ -816,40 +819,293 @@
   }
 
   // ---------------------------------------------------------
-  //  기록
+  //  기록 — 캘린더
   // ---------------------------------------------------------
+  const FOCUS_KEYS = { lower: "lower", back: "back", push: "push", cardio: "cardio" };
+
+  // 날짜 -> 그날의 세션 목록 (하루에 PT/개인 최대 2개)
+  function sessionsByDate() {
+    const m = new Map();
+    for (const w of S.history) {
+      if (!m.has(w.date)) m.set(w.date, []);
+      m.get(w.date).push(w);
+    }
+    // 개인운동을 먼저 보이게
+    for (const list of m.values()) list.sort((a, b) => (a.source === "self" ? -1 : 1));
+    return m;
+  }
+
+  // 그날 붙일 라벨. 하체+유산소면 2개, PT하체+개인등이면 2개.
+  function dayLabels(list) {
+    const out = [], seen = new Set();
+    for (const w of list) {
+      if (w.focus !== "cardio" && !seen.has(w.focus)) { seen.add(w.focus); out.push(w.focus); }
+      if ((w.focus === "cardio" || (w.cardio || []).length) && !seen.has("cardio")) {
+        seen.add("cardio"); out.push("cardio");
+      }
+    }
+    return out;
+  }
+
+  const monthOf = (isoStr) => isoStr.slice(0, 7);
+  const firstRecordMonth = () => {
+    const ds = S.history.map((w) => w.date).sort();
+    return ds.length ? monthOf(ds[0]) : monthOf(TODAY);
+  };
+  function shiftMonth(ym, delta) {
+    const [y, m] = ym.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1, 2)}`;
+  }
+  function monthLabel(ym) {
+    const [y, m] = ym.split("-").map(Number);
+    // 올해면 '7월', 다른 해면 '2025. 06'
+    return y === new Date().getFullYear() ? `${m}월` : `${y}. ${pad(m, 2)}`;
+  }
+
   function renderLog() {
     const box = $("#tab-log"); box.innerHTML = "";
-    if (!S.history.length) { box.append(el("div", "empty", "아직 기록이 없어요.")); return; }
-    S.history.slice(0, 60).forEach((w, i) => {
-      if (i) box.append(el("hr", "rule"));
-      const c = el("div", "log");
-      const hd = el("div", "hd");
-      const left = el("button", null, kDate(w.date) + "  " + kFocus(w.focus));
-      left.style.cssText = "text-align:left;text-decoration:underline dotted";
-      left.title = "이 날짜로 이동";
-      left.onclick = () => {
-        S.date = w.date; S.forceNew = false; S.manualFocus = null; S.salt = "";
-        $("#dateInput").value = w.date;
-        buildRec();
-        document.querySelector('nav.tabs button[data-tab=today]').click();
-      };
-      hd.append(left, el("span", "src", w.source === "pt" ? "PT 수업" : "개인"));
-      c.append(hd);
+    if (!S.calMonth) S.calMonth = monthOf(S.date);
+    const byDate = sessionsByDate();
+
+    // ── 월 이동 ──
+    const nav = el("div", "calnav");
+    const prev = el("button", "arw", "‹");
+    prev.setAttribute("aria-label", "지난 달");
+    prev.onclick = () => { S.calMonth = shiftMonth(S.calMonth, -1); S.monPick = false; renderLog(); };
+    const mon = el("button", "mon", monthLabel(S.calMonth));
+    mon.setAttribute("aria-label", "월 선택");
+    mon.onclick = () => { S.monPick = !S.monPick; renderLog(); };
+    const next = el("button", "arw", "›");
+    next.setAttribute("aria-label", "다음 달");
+    next.disabled = S.calMonth >= monthOf(TODAY);
+    next.onclick = () => { S.calMonth = shiftMonth(S.calMonth, 1); S.monPick = false; renderLog(); };
+    nav.append(prev, mon, next);
+    if (S.calMonth !== monthOf(TODAY)) {
+      const now = el("button", "now", "오늘");
+      now.onclick = () => { S.calMonth = monthOf(TODAY); S.monPick = false; renderLog(); };
+      nav.append(now);
+    }
+    const shot = el("button", "now", "📷");
+    shot.title = "이 달 캘린더를 이미지로 저장";
+    shot.setAttribute("aria-label", "캘린더 이미지로 저장");
+    shot.onclick = () => exportCalendar(shot);
+    nav.append(shot);
+    box.append(nav);
+
+    if (S.monPick) { box.append(monthPicker()); box.append(el("hr", "rule")); }
+
+    box.append(dowRow());
+    box.append(calGrid(S.calMonth, byDate, { interactive: true }));
+    box.append(el("hr", "rule"));
+    monthTotals(S.calMonth, byDate).forEach((x) => box.append(x));
+
+    // ── 선택한 날 상세 ──
+    if (S.calSel && byDate.has(S.calSel)) {
+      box.append(el("hr", "rule dbl"));
+      box.append(dayDetail(S.calSel, byDate.get(S.calSel)));
+    }
+  }
+
+  function dowRow() {
+    const dow = el("div", "dow");
+    "일월화수목금토".split("").forEach((d, i) => dow.append(el("span", i === 0 ? "sun" : null, d)));
+    return dow;
+  }
+
+  // interactive:true 면 클릭·선택 상태를 붙인다. 캡처용은 false.
+  function calGrid(ym, byDate, opt) {
+    const interactive = !!(opt && opt.interactive);
+    const [y, mo] = ym.split("-").map(Number);
+    const startDow = new Date(y, mo - 1, 1).getDay();
+    const inMonth = new Date(y, mo, 0).getDate();
+    const rows = Math.ceil((startDow + inMonth) / 7);
+    const grid = el("div", "grid");
+
+    for (let i = 0; i < rows * 7; i++) {
+      const dayNum = i - startDow + 1;
+      const out = dayNum < 1 || dayNum > inMonth;
+      const dt = new Date(y, mo - 1, dayNum);
+      const isoDt = iso(dt);
+      const cell = el("div", "cell" + (out ? " out" : "") + (dt.getDay() === 0 ? " sun" : "") +
+        (isoDt === TODAY ? " today" : "") +
+        (interactive && isoDt === S.calSel ? " sel" : ""));
+      cell.append(el("div", "dnum", String(dt.getDate())));
+
+      const list = out ? null : byDate.get(isoDt);
+      if (list && list.length) {
+        cell.classList.add("has");
+        const labels = dayLabels(list);
+        labels.slice(0, 2).forEach((f) => cell.append(el("div", "lb " + FOCUS_KEYS[f], kFocus(f))));
+        if (labels.length > 2) cell.append(el("div", "more", "+" + (labels.length - 2)));
+        if (interactive) {
+          cell.setAttribute("role", "button");
+          cell.setAttribute("aria-label", `${dt.getMonth() + 1}월 ${dt.getDate()}일 ` +
+            labels.map(kFocus).join(", "));
+          cell.onclick = () => { S.calSel = S.calSel === isoDt ? null : isoDt; renderLog(); };
+        }
+      }
+      grid.append(cell);
+    }
+    return grid;
+  }
+
+  function monthStats(ym, byDate) {
+    const days = [...byDate.entries()].filter(([d]) => monthOf(d) === ym);
+    let vol = 0, cmin = 0, sets = 0;
+    const byFocus = {};
+    days.forEach(([, list]) => list.forEach((w) => {
+      w.exercises.forEach((e) => e.sets.forEach((sg) => {
+        vol += (sg.weight || 0) * (sg.reps || 0) * (sg.set_count || 1);
+        sets += sg.set_count || 1;
+      }));
+      (w.cardio || []).forEach((it) => { cmin += itemMinutes(it); });
+      dayLabels([w]).forEach((f) => { byFocus[f] = (byFocus[f] || 0) + 1; });
+    }));
+    return { days: days.length, vol, sets, cmin, byFocus };
+  }
+
+  function monthTotals(ym, byDate) {
+    const st = monthStats(ym, byDate);
+    if (!st.days) return [el("div", "empty", "이 달에는 기록이 없어요.")];
+    const row = (k, v) => { const d = el("div", "total dim");
+      d.append(el("span", null, k), el("span", null, v)); return d; };
+    const out = [row("운동한 날", st.days + " 일"), row("총 세트", st.sets + " 세트"),
+                 row("총 볼륨", Math.round(st.vol).toLocaleString() + " kg")];
+    if (st.cmin) out.push(row("유산소", st.cmin + " 분"));
+    return out;
+  }
+
+  // 캡처 전용 캘린더 (선택 표시 없음, 부위별 횟수 범례 포함)
+  function buildCalendarNode() {
+    const ym = S.calMonth || monthOf(S.date);
+    const byDate = sessionsByDate();
+    const [y, mo] = ym.split("-").map(Number);
+
+    const paper = el("div", "paper");
+    paper.append(paperHead("＊ 운동 기록 ＊", "M O N T H L Y   L O G"));
+    paper.append(metaRow("기간", `${y}. ${pad(mo, 2)}`));
+    paper.append(metaRow("회원", S.demo ? "미리보기" : (S.user ? S.user.email.split("@")[0] : "-")));
+    paper.append(el("hr", "rule"));
+
+    paper.append(dowRow());
+    paper.append(calGrid(ym, byDate, { interactive: false }));
+
+    // 부위별 범례 — 색만 보고 헷갈리지 않게 횟수까지
+    const st = monthStats(ym, byDate);
+    const keys = ["lower", "back", "push", "cardio"].filter((f) => st.byFocus[f]);
+    if (keys.length) {
+      paper.append(el("hr", "rule"));
+      const lg = el("div");
+      lg.style.cssText = "display:flex;flex-wrap:wrap;gap:5px;justify-content:center";
+      keys.forEach((f) => {
+        const b = el("div", "lb " + FOCUS_KEYS[f], `${kFocus(f)} ${st.byFocus[f]}회`);
+        b.style.cssText = "font-size:.72em;padding:1px 6px";
+        lg.append(b);
+      });
+      paper.append(lg);
+    }
+
+    paper.append(el("hr", "rule dbl"));
+    monthTotals(ym, byDate).forEach((x) => paper.append(x));
+    paper.append(barcodeBlock(ym.replace("-", "") + " LOG " + pad(st.days, 2)));
+    return paper;
+  }
+
+  const exportCalendar = (btn) =>
+    exportNode(buildCalendarNode(), `pt-calendar-${S.calMonth || monthOf(S.date)}.png`, btn);
+
+  function monthPicker() {
+    const wrap = el("div");
+    let [y] = S.calMonth.split("-").map(Number);
+    const draw = () => {
+      wrap.innerHTML = "";
+      const yn = el("div", "ynav");
+      const p = el("button", null, "‹"); p.setAttribute("aria-label", "지난 해");
+      p.onclick = () => { y--; draw(); };
+      const nx = el("button", null, "›"); nx.setAttribute("aria-label", "다음 해");
+      nx.disabled = y >= new Date().getFullYear();
+      nx.onclick = () => { y++; draw(); };
+      yn.append(p, el("span", null, y + "년"), nx);
+      wrap.append(yn);
+
+      const g = el("div", "mpick");
+      const minM = firstRecordMonth(), maxM = monthOf(TODAY);
+      for (let m = 1; m <= 12; m++) {
+        const ym = `${y}-${pad(m, 2)}`;
+        const b = el("button", null, m + "월");
+        b.setAttribute("aria-pressed", ym === S.calMonth);
+        b.disabled = ym > maxM;
+        if (ym < minM) b.style.opacity = "0.5";
+        b.onclick = () => { S.calMonth = ym; S.monPick = false; renderLog(); };
+        g.append(b);
+      }
+      wrap.append(g);
+    };
+    draw();
+    return wrap;
+  }
+
+  function dayDetail(dateStr, list) {
+    const box = el("div", "dtl");
+    const hd = el("div", "chead");
+    const t = el("span", null, kDate(dateStr));
+    t.style.cssText = "letter-spacing:.1em;flex:1";
+    hd.append(t);
+    box.append(hd);
+
+    list.forEach((w) => {
+      const sec = el("div", "sec");
+      const sh = el("div", "sh");
+      dayLabels([w]).forEach((f) => sh.append(el("span", "lb " + FOCUS_KEYS[f], kFocus(f))));
+      sh.append(el("span", "src", w.source === "pt" ? "PT 수업" : "개인"));
+      sec.append(sh);
+
       for (const e of w.exercises) {
         const ent = byId(e.exercise_id);
         const li = el("div", "li");
         li.append(el("span", "n", ent ? ent.name : e.exercise_id));
-        const t = E.topSet(e.sets);
-        if (t) {
-          const cnt = E.setsAtWeight(e.sets, t.weight);
+        const top = E.topSet(e.sets);
+        if (top) {
+          const cnt = E.setsAtWeight(e.sets, top.weight);
           li.append(el("span", "v",
-            `${t.weight == null ? "맨몸" : num(t.weight) + "kg" + (t.per_side ? "씩" : "")} × ${t.reps} × ${cnt}`));
+            `${top.weight == null ? "맨몸" : num(top.weight) + "kg" + (top.per_side ? "씩" : "")}` +
+            ` × ${top.reps} × ${cnt}`));
         }
-        c.append(li);
+        sec.append(li);
       }
-      box.append(c);
+
+      (w.cardio || []).forEach((it) => {
+        const m = machineById(it.machine) || { name: it.machine };
+        const li = el("div", "li");
+        const nm = (it.segments || []).length > 1
+          ? `${m.name} 인터벌 ${it.rep_count}세트` : m.name;
+        li.append(el("span", "n", nm));
+        const bits = [itemMinutes(it) + "분"];
+        const km = itemDistance(it); if (km) bits.push(num(km) + "km");
+        const fl = (it.rep_count || 1) * (it.segments || []).reduce((a, sg) => a + (+sg.floors || 0), 0);
+        if (fl) bits.push(fl + "층");
+        li.append(el("span", "v", bits.join(" · ")));
+        sec.append(li);
+      });
+
+      if (!w.exercises.length && !(w.cardio || []).length) {
+        sec.append(el("div", "li", "기록된 세트가 없어요."));
+      }
+      box.append(sec);
     });
+
+    const acts = el("div", "acts");
+    const go = el("button", "pri", "이 날짜 열기");
+    go.onclick = () => {
+      S.date = dateStr; S.forceNew = false; S.manualFocus = null; S.salt = "";
+      $("#dateInput").value = dateStr;
+      buildRec();
+      document.querySelector('nav.tabs button[data-tab=today]').click();
+    };
+    acts.append(go);
+    box.append(acts);
+    return box;
   }
 
   // ---------------------------------------------------------
@@ -1346,7 +1602,7 @@
     document.querySelectorAll("nav.tabs button").forEach((b) => b.setAttribute("aria-selected", b === t));
     ["today", "log", "trend"].forEach((k) => $("#tab-" + k).classList.toggle("hidden", k !== S.tab));
     if (S.tab === "today") renderToday();
-    if (S.tab === "log") renderLog();
+    if (S.tab === "log") { S.calMonth = monthOf(S.date); S.calSel = null; S.monPick = false; renderLog(); }
     if (S.tab === "trend") renderTrend();
   });
 

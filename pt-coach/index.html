@@ -20,6 +20,11 @@
 :root{
   --paper:#f3f0e7; --paper-2:#eae6da; --ink:#26231e; --ink-2:#6b655a; --ink-3:#a9a294;
   --line:#c9c2b2; --hi:#2f6d4f; --hi-bg:#e2ecdf; --warn:#a8442b; --warn-bg:#f3e2dc;
+  /* 부위 스탬프 색 — 감열지 위 잉크 도장 느낌으로 채도를 낮춤 */
+  --f-lower:#9c5a2e;  --f-lower-bg:#f0e6da;
+  --f-back:#3f5d7a;   --f-back-bg:#e2e8ee;
+  --f-push:#7a3f5d;   --f-push-bg:#eee0e7;
+  --f-cardio:#2f6d4f; --f-cardio-bg:#e2ecdf;
   --disp:'ThinRounded','NanumGothicCoding',ui-monospace,monospace;
   --body:'NanumGothicCoding',ui-monospace,monospace;
   --fs:15.5px; --w:400px;
@@ -173,14 +178,60 @@ input.num:focus{outline:0;border-bottom:1px solid var(--ink);background:var(--pa
     var(--ink) 13px 14px,transparent 14px 18px)}
 .barnum{letter-spacing:.3em;font-size:.8em;color:var(--ink-2);margin:0}
 
-/* 기록 · 추이 */
-.log{margin:11px 0 0}
-.log .hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.log .src{font-size:.75em;color:var(--ink-3);border:1px solid var(--line);padding:0 5px}
-.log .li{display:flex;justify-content:space-between;gap:6px;white-space:nowrap;
-         overflow:hidden;font-size:.88em;padding:1px 0}
-.log .li .n{overflow:hidden;text-overflow:ellipsis}
-.log .li .v{flex:none;color:var(--ink-2);font-size:.94em}
+/* ── 캘린더 ─────────────────────────────────────────────── */
+.calnav{display:flex;align-items:center;gap:4px;margin:12px 0 8px}
+.calnav button.arw{flex:none;border:1px solid var(--line);padding:4px 11px;color:var(--ink-2);
+                   line-height:1.3}
+.calnav button.arw:disabled{opacity:.3}
+.calnav button.mon{flex:1;text-align:center;letter-spacing:.1em;font-size:1.12em;
+                   padding:3px 0;text-decoration:underline dotted var(--line)}
+.calnav button.now{flex:none;border:1px solid var(--line);padding:4px 8px;
+                   font-size:.74em;color:var(--ink-2)}
+
+.dow{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--line);
+     padding-bottom:3px}
+.dow span{text-align:center;font-size:.74em;color:var(--ink-3);letter-spacing:.04em}
+.dow span.sun{color:var(--warn)}
+
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-top:2px}
+.cell{min-height:46px;padding:2px 1px 3px;border:1px solid transparent;
+      display:flex;flex-direction:column;align-items:stretch;gap:1px;overflow:hidden}
+.cell .dnum{font-size:.78em;color:var(--ink-2);text-align:center;line-height:1.25;flex:none}
+.cell.out .dnum{color:var(--ink-3);opacity:.5}
+.cell.sun .dnum{color:var(--warn)}
+.cell.today{border-color:var(--ink-3);border-style:dashed}
+.cell.today .dnum{color:var(--ink)}
+.cell.has{cursor:pointer}
+.cell.sel{border-color:var(--ink);border-style:solid;background:var(--paper-2)}
+.cell .lb{font-size:.62em;line-height:1.5;text-align:center;letter-spacing:-.02em;
+          border:1px solid currentColor;padding:0 1px;white-space:nowrap;overflow:hidden;
+          text-overflow:ellipsis;flex:none}
+.lb.lower {color:var(--f-lower); background:var(--f-lower-bg)}
+.lb.back  {color:var(--f-back);  background:var(--f-back-bg)}
+.lb.push  {color:var(--f-push);  background:var(--f-push-bg)}
+.lb.cardio{color:var(--f-cardio);background:var(--f-cardio-bg)}
+.cell .more{font-size:.6em;color:var(--ink-3);text-align:center;line-height:1.3}
+
+/* 월 선택 */
+.mpick{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:9px 0 2px}
+.mpick button{border:1px solid var(--line);padding:7px 0;font-size:.88em;color:var(--ink-2)}
+.mpick button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.mpick button:disabled{opacity:.28}
+.ynav{display:flex;align-items:center;gap:6px;margin-top:9px}
+.ynav button{flex:none;border:1px solid var(--line);padding:4px 11px;color:var(--ink-2)}
+.ynav span{flex:1;text-align:center;letter-spacing:.12em}
+
+/* 선택한 날 상세 */
+.dtl{margin-top:2px}
+.dtl .sec{margin-top:9px}
+.dtl .sec .sh{display:flex;align-items:baseline;gap:6px}
+.dtl .sec .sh .lb{font-size:.7em}
+.dtl .sec .sh .src{font-size:.72em;color:var(--ink-3);border:1px solid var(--line);
+                   padding:0 5px;margin-left:auto}
+.dtl .li{display:flex;justify-content:space-between;gap:6px;white-space:nowrap;
+         overflow:hidden;font-size:.86em;padding:1px 0}
+.dtl .li .n{overflow:hidden;text-overflow:ellipsis}
+.dtl .li .v{flex:none;color:var(--ink-2);font-size:.94em}
 
 .trend{margin:12px 0 0}
 .trend .hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
