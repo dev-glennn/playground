@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#e8e4d8">
 <title>오늘의 운동</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🧾</text></svg>">
@@ -30,9 +30,13 @@
   --fs:15.5px; --w:400px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-/* 더블탭 확대만 막는다. 핀치 줌은 남겨둬야 필요할 때 키워 볼 수 있다.
-   (viewport 에 user-scalable=no 를 넣으면 핀치까지 막혀 접근성이 나빠진다) */
-html{touch-action:manipulation}
+/* 확대 전부 차단 — 더블탭·핀치 모두.
+   viewport 의 user-scalable=no 를 iOS Safari 는 무시하므로
+   touch-action:none 과 gesturestart 차단(app.js)까지 함께 걸어야 실제로 막힌다.
+   대신 스크롤은 살려야 하니 pan-y 를 남긴다. */
+html{touch-action:pan-y}
+/* 글자 크기는 헤더의 작게·보통·크게 토글로 조절한다 */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 html,body{margin:0;padding:0}
 body{
   background:#0e1116; color:var(--ink);

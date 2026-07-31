@@ -109,6 +109,29 @@
   }
 
   // ---------------------------------------------------------
+  //  확대 차단
+  //  iOS Safari 는 viewport 의 user-scalable=no 를 무시한다.
+  //  제스처 이벤트와 멀티터치를 직접 막아야 실제로 확대가 안 된다.
+  // ---------------------------------------------------------
+  (function noZoom() {
+    // Safari 전용 핀치 제스처
+    ["gesturestart", "gesturechange", "gestureend"].forEach((t) => {
+      document.addEventListener(t, (ev) => ev.preventDefault(), { passive: false });
+    });
+    // 손가락 2개 이상이면 확대 시도로 보고 막는다
+    document.addEventListener("touchmove", (ev) => {
+      if (ev.touches && ev.touches.length > 1) ev.preventDefault();
+    }, { passive: false });
+    // 더블탭 확대는 CSS touch-action 이 막는다.
+    // 여기서 touchend 를 preventDefault 하면 빠르게 연속 탭할 때
+    // 두 번째 탭의 click 이 씹혀서 세트 체크가 안 된다.
+    // 데스크톱 Ctrl/⌘ + 휠 확대
+    document.addEventListener("wheel", (ev) => {
+      if (ev.ctrlKey || ev.metaKey) ev.preventDefault();
+    }, { passive: false });
+  })();
+
+  // ---------------------------------------------------------
   //  글자 크기
   // ---------------------------------------------------------
   (function zoom() {

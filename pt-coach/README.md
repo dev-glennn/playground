@@ -238,10 +238,29 @@ DB 컬럼 매핑은 `app.js` 의 `FIELD_COL` 이 담당합니다.
 
 ## 모바일
 
-- 더블탭 확대는 `html { touch-action: manipulation }` 으로 막았습니다. **핀치 줌은 살려뒀습니다** —
-  `viewport` 에 `user-scalable=no` 를 넣으면 필요할 때 키워 볼 수도 없어 접근성이 나빠집니다.
+### 확대 차단
+
+더블탭·핀치 모두 막았습니다. iOS Safari 는 `viewport` 의 `user-scalable=no` 를 **무시**하므로
+네 겹으로 걸어야 실제로 막힙니다.
+
+| 방법 | 막는 것 |
+|---|---|
+| `viewport: maximum-scale=1, user-scalable=no` | Android · 데스크톱 |
+| `html { touch-action: pan-y }` | 더블탭 줌 (세로 스크롤은 남김) |
+| `gesturestart` / `gesturechange` preventDefault | iOS Safari 핀치 |
+| 손가락 2개 이상 `touchmove` preventDefault | 남은 핀치 경로 |
+| `Ctrl`/`⌘` + 휠 preventDefault | 데스크톱 확대 |
+
+`touchend` 를 preventDefault 하는 방법은 **쓰지 않습니다.** 그러면 빠르게 연속 탭할 때 두 번째
+탭의 `click` 이 씹혀서 세트 체크가 안 됩니다.
+
+`text-size-adjust: 100%` 로 가로 회전 시 글자가 커지는 것도 막았습니다.
+
+### 그 외
+
 - 입력 칸 글자는 `max(16px, 1em)` 입니다. iOS 는 16px 미만 입력 칸을 탭하면 화면을 자동 확대합니다.
-- 글자 크기 토글(작게/보통/크게)은 브라우저에 저장됩니다.
+- 글자 크기는 헤더의 `작게 / 보통 / 크게` 토글로 조절하고 브라우저에 저장됩니다.
+  확대를 막았으니 이게 유일한 확대 수단입니다.
 
 ## 나중에 손볼 만한 것
 
