@@ -20,6 +20,9 @@
     calMonth: null,         // 'YYYY-MM' 보고 있는 달
     calSel: null,           // 선택한 날짜
     monPick: false,         // 월 선택 열림
+    drag: null,             // 날짜 옮기기 드래그 중
+    custom: [],             // custom_exercises 테이블
+    noCustomTable: false,   // migration_custom_exercises.sql 미실행 감지
     salt: "", manualFocus: null,
     pinned: JSON.parse(localStorage.getItem("pt_pinned") || "[]"),
     trendSel: new Set(),
@@ -33,7 +36,10 @@
   const TODAY = iso(new Date());
   S.date = TODAY;
 
-  const byId = (id) => S.catalog.find((x) => x.id === id);
+  // 기본 카탈로그 + 내가 만든 종목. 숨긴 것은 목록에서 빼되 조회는 되게 남긴다.
+  const allEx = () => S.catalog.concat(S.custom);
+  const pickable = () => S.catalog.concat(S.custom.filter((x) => !x.hidden));
+  const byId = (id) => allEx().find((x) => x.id === id);
   const num = (v) => (v == null ? "" : String(+(+v).toFixed(2)));
   // 'cardio' 는 부위가 아니라 "근력 없이 유산소만 한 날" 표시값이다.
   const kFocus = (f) => (f === "cardio" ? "유산소" : (S.focusLabels[f] || f));
@@ -218,7 +224,7 @@
     out.onclick = async () => { await S.sb.auth.signOut(); location.reload(); };
     $("#uRight").innerHTML = ""; $("#uRight").append(out);
 
-    try { await loadHistory(); }
+    try { await loadHistory(); await loadCustom(); }
     catch (e) {
       const miss = /cardio_sets/i.test(e.message || "")
         ? "<br><br><b>supabase/migration_cardio.sql</b> 을 SQL Editor에서 실행해 주세요."
@@ -282,6 +288,25 @@
       return { id: w.id, date: w.date, focus: w.focus, source: w.source, note: w.note,
                exercises: [...groups.values()], cardio: [...citems.values()] };
     });
+  }
+
+  async function loadCustom() {
+    const { data, error } = await S.sb.from("custom_exercises")
+      .select("id,name,focus,pattern,equipment,hidden").order("created_at");
+    if (error) {
+      const m = (error.message || "") + (error.details || "");
+      if (/custom_exercises|schema cache|does not exist/i.test(m)) {
+        S.noCustomTable = true; S.custom = [];
+        console.warn("[PT] custom_exercises 테이블이 없어 내가 만든 종목 기능을 끕니다.", error);
+        return;
+      }
+      throw error;
+    }
+    S.custom = (data || []).map((x) => ({
+      id: x.id, name: x.name, focus: x.focus,
+      pattern: x.pattern || "custom", equipment: x.equipment || "custom",
+      hidden: !!x.hidden, from_history: false, mine: true,
+    }));
   }
 
   // 추천은 '그 날짜 이전' 기록만 본다. 과거 날짜를 고르면 그 시점의 추천이 나온다.
@@ -531,7 +556,8 @@
       if (plan.why) item.append(el("div", "note", plan.why));
 
       const foot = el("div", "exfoot");
-      if (S.mode === "new") {
+      // 직접 추가한 슬롯은 패턴이 없어 교체 후보를 뽑을 수 없다
+      if (S.mode === "new" && Array.isArray(slot.patterns) && slot.patterns.length) {
         const bSwap = el("button", null, "🔄 다른 종목");
         bSwap.onclick = () => rebuildSlot(i);
         foot.append(bSwap);
@@ -816,6 +842,85 @@
     $("#barnum").textContent = S.date.replace(/-/g, "") + " " + effFocus().toUpperCase() + " " + pad(n, 3);
     // 체크 상태에 따라 부위 표시가 달라지므로 스탬프와 안내문도 함께 갱신
     if ($("#focuspick").children.length) { renderStamps(); renderWhy(); }
+  }
+
+  // ---------------------------------------------------------
+  //  기록 날짜 옮기기
+  // ---------------------------------------------------------
+  // 같은 (date, source) 는 유일해야 하므로, 목적지에 같은 종류의 기록이 있으면
+  // 먼저 지워야 한다. 실수로 덮어쓰는 일이 없게 항상 확인을 받는다.
+  async function moveSession(w, toDate) {
+    if (!toDate || toDate === w.date) return false;
+    if (toDate > TODAY) { toast("미래 날짜로는 옮길 수 없어요.", true); return false; }
+
+    const clash = S.history.find((x) => x.date === toDate && x.source === w.source && x.id !== w.id);
+    const label = `${kDate(w.date)} ${kFocus(w.focus)} ${SRC_LABEL[w.source]}`;
+    const msg = clash
+      ? `${toDate} 에 이미 ${SRC_LABEL[w.source]} 기록이 있어요.\n` +
+        `덮어쓸까요?\n\n옮길 것: ${label}\n지워질 것: ${kDate(clash.date)} ${kFocus(clash.focus)}`
+      : `${label} 을\n${kDate(toDate)} 로 옮길까요?`;
+    if (!confirm(msg)) return false;
+
+    try {
+      if (clash) {
+        const { error } = await S.sb.from("workouts").delete().eq("id", clash.id);
+        if (error) throw error;
+      }
+      const { error: e2 } = await S.sb.from("workouts").update({ date: toDate }).eq("id", w.id);
+      if (e2) throw e2;
+
+      await loadHistory();
+      S.calMonth = monthOf(toDate);
+      S.calSel = toDate;
+      if (S.date === w.date) { S.date = toDate; $("#dateInput").value = toDate; }
+      buildRec();
+      toast(`${kDate(w.date)} → ${kDate(toDate)} 로 옮겼어요` + (clash ? " (덮어씀)" : ""));
+      renderLog();
+      return true;
+    } catch (e) {
+      toast("옮기기 실패: " + (e.message || e), true);
+      return false;
+    }
+  }
+
+  function openMoveDialog(w) {
+    const wrap = el("div", "modal");
+    wrap.style.top = "22%";
+    const bg = el("div");
+    Object.assign(bg.style, { position: "fixed", inset: 0, background: "#0e1116cc", zIndex: 19 });
+    const close = () => { wrap.remove(); bg.remove(); };
+    bg.onclick = close;
+
+    wrap.append(el("p", "mt", "날 짜 옮 기 기"));
+    const info = el("p", "sans tiny dim");
+    info.style.cssText = "margin:0 0 9px;text-align:center";
+    info.textContent = `${kDate(w.date)} · ${kFocus(w.focus)} · ${SRC_LABEL[w.source]}`;
+    wrap.append(info);
+
+    const f = el("div", "field");
+    f.append(el("label", null, "옮길 날짜"));
+    const di = el("input");
+    di.type = "date"; di.value = w.date; di.max = TODAY;
+    di.style.cssText = "width:100%;background:var(--paper-2);border:1px solid var(--line);padding:9px 10px";
+    f.append(di);
+    wrap.append(f);
+
+    const acts = el("div", "acts");
+    const no = el("button", null, "취소");
+    no.onclick = close;
+    const ok = el("button", "pri", "옮기기");
+    ok.onclick = async () => {
+      const to = di.value;
+      if (!to || to === w.date) { toast("다른 날짜를 골라주세요.", true); return; }
+      ok.disabled = true;
+      const done = await moveSession(w, to);
+      ok.disabled = false;
+      if (done) close();
+    };
+    acts.append(no, ok);
+    wrap.append(acts);
+    document.body.append(bg, wrap);
+    setTimeout(() => di.focus(), 30);
   }
 
   // ---------------------------------------------------------
@@ -1113,7 +1218,7 @@
   // ---------------------------------------------------------
   function trendRows() {
     const rows = [];
-    for (const ex of S.catalog) {
+    for (const ex of allEx()) {
       const pts = E.sessionsOf(ex.id, S.history)
         .map((s) => ({ date: s.date, w: (E.topSet(s.sets) || {}).weight }))
         .filter((p) => p.w != null).reverse();
@@ -1513,7 +1618,8 @@
       try {
         const file = new File([blob], filename, { type: "image/png" });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: filename });
+          // title/text 를 넘기면 카톡 등에서 파일명이 메시지로 같이 붙는다. 파일만 보낸다.
+          await navigator.share({ files: [file] });
           toast("공유 시트를 열었어요.");
           return;
         }
@@ -1540,56 +1646,198 @@
   };
 
   // ---------------------------------------------------------
-  //  종목 추가
+  //  종목 추가 (검색 + 새로 만들기)
   // ---------------------------------------------------------
+  const EQUIP_SHORT = (ex) => EQUIP[ex.equipment] || "";
+
+  // 검색: 이름 · 부위 · 장비 · 패턴을 공백으로 나눈 모든 토큰이 들어 있어야 통과
+  function matchEx(ex, qs) {
+    if (!qs) return true;
+    const hay = [ex.name, kFocus(ex.focus), S.patternLabels[ex.pattern] || "",
+                 EQUIP_SHORT(ex)].join(" ").toLowerCase();
+    return qs.toLowerCase().split(/\s+/).filter(Boolean).every((t) => hay.includes(t));
+  }
+
   function addExercise() {
     const used = new Set(S.edits.map((e) => e.exercise_id));
-    const opts = S.catalog.filter((x) => !used.has(x.id));
-    if (!opts.length) { toast("추가할 종목이 없어요.", true); return; }
+    let newFocus = S.rec.focus === "cardio" ? "lower" : S.rec.focus;
 
-    const wrap = el("div");
-    Object.assign(wrap.style, { position: "fixed", left: "12px", right: "12px", top: "10%",
-      zIndex: 20, maxWidth: "400px", margin: "0 auto", background: "var(--paper)",
-      color: "var(--ink)", padding: "18px 16px", border: "1px solid var(--ink)" });
-    const h = el("p", "c", "종 목 추 가");
-    h.style.cssText = "letter-spacing:.12em;margin:0 0 10px";
-    wrap.append(h);
-
-    const sel = el("select");
-    sel.style.cssText = "width:100%;background:var(--paper-2);border:1px solid var(--line);" +
-      "padding:9px 10px;font-family:var(--disp);font-size:1em";
-    const byFocus = {};
-    opts.forEach((x) => (byFocus[x.focus] = byFocus[x.focus] || []).push(x));
-    for (const f of Object.keys(byFocus)) {
-      const g = el("optgroup"); g.label = kFocus(f);
-      byFocus[f].sort((a, b) => a.name.localeCompare(b.name, "ko")).forEach((x) => {
-        const o = el("option", null, x.name + (x.from_history ? "" : " (새 종목)"));
-        o.value = x.id; g.append(o);
-      });
-      sel.append(g);
-    }
-    wrap.append(sel);
-
-    const acts = el("div", "acts");
-    const no = el("button", null, "취소");
-    const ok = el("button", "pri", "추가");
+    const wrap = el("div", "modal");
+    const bg = el("div");
+    Object.assign(bg.style, { position: "fixed", inset: 0, background: "#0e1116cc", zIndex: 19 });
     const close = () => { wrap.remove(); bg.remove(); };
-    no.onclick = close;
-    ok.onclick = () => {
-      const ex = byId(sel.value);
+    bg.onclick = close;
+
+    wrap.append(el("p", "mt", "종 목 추 가"));
+
+    const srch = el("input", "srch");
+    srch.type = "search"; srch.placeholder = "종목 · 부위 · 기구로 검색";
+    srch.setAttribute("aria-label", "종목 검색");
+    wrap.append(srch);
+    const cnt = el("p", "cnt");
+    wrap.append(cnt);
+
+    const list = el("div", "exlist");
+    wrap.append(list);
+
+    function addPicked(ex) {
       const plan = S.mode === "edit"
         ? { sets: [{ weight: null, reps: 12, set_count: 3, kind: "work", per_side: false }], why: null }
         : E.suggestSets(ex.id, historyBefore(S.date), null);
       S.rec.slots.push({ label: "직접 추가", exercise: ex, plan, daysSince: 999, alternatives: [] });
       S.edits.push(toEdit({ exercise: ex, plan }));
       close(); renderToday();
-    };
-    acts.append(no, ok); wrap.append(acts);
+    }
 
-    const bg = el("div");
-    Object.assign(bg.style, { position: "fixed", inset: 0, background: "#0e1116cc", zIndex: 19 });
-    bg.onclick = close;
+    function draw() {
+      const qs = srch.value.trim();
+      const hits = pickable().filter((x) => !used.has(x.id) && matchEx(x, qs));
+      list.innerHTML = "";
+      cnt.textContent = `${hits.length} / ${pickable().filter((x) => !used.has(x.id)).length} 종목`;
+
+      if (!hits.length) {
+        list.append(el("div", "none", qs ? `'${qs}' 에 맞는 종목이 없어요.` : "추가할 종목이 없어요."));
+      }
+      // 이름이 걸린 것을 먼저 (패턴·기구로만 걸린 건 아래로).
+      // '스쿼트' 를 치면 이름에 스쿼트가 든 종목이 먼저, 머신 스쿼트 패턴인
+      // 레그프레스 같은 건 그다음에 나온다.
+      const ql = qs.toLowerCase();
+      const byName = (x) => ql && x.name.toLowerCase().includes(ql) ? 1 : 0;
+      hits.sort((a, b) => byName(b) - byName(a) ||
+                          (b.mine ? 1 : 0) - (a.mine ? 1 : 0) ||
+                          (b.from_history ? 1 : 0) - (a.from_history ? 1 : 0) ||
+                          a.name.localeCompare(b.name, "ko"));
+      hits.slice(0, 200).forEach((ex) => {
+        const b = el("button");
+        b.append(el("span", "nm", ex.name));
+        b.append(el("span", "mt2", kFocus(ex.focus) +
+          (EQUIP_SHORT(ex) ? " · " + EQUIP_SHORT(ex) : "")));
+        if (ex.mine) b.append(el("span", "bd mine", "내 종목"));
+        else if (!ex.from_history) b.append(el("span", "bd", "새 종목"));
+        b.onclick = () => addPicked(ex);
+
+        if (ex.mine) {
+          const act = el("span", "rowact");
+          const ed = el("span", null, "이름");
+          ed.onclick = (ev) => { ev.stopPropagation(); renameCustom(ex, draw); };
+          const rm = el("span", null, "삭제");
+          rm.onclick = (ev) => { ev.stopPropagation(); deleteCustom(ex, draw); };
+          act.append(ed, rm);
+          b.append(act);
+        }
+        list.append(b);
+      });
+    }
+    srch.addEventListener("input", draw);
+    srch.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") {
+        const first = list.querySelector("button");
+        if (first) first.click();
+      }
+    });
+
+    // ── 새 종목 만들기 ──
+    if (!S.noCustomTable && !S.demo) {
+      const nx = el("div", "newex");
+      const row = el("div", "row");
+      const nin = el("input");
+      nin.type = "text"; nin.placeholder = "새 종목 이름";
+      nin.setAttribute("aria-label", "새 종목 이름");
+      const mk = el("button", null, "만들기");
+      mk.style.cssText = "flex:none;border:1px solid var(--ink);background:var(--ink);" +
+        "color:var(--paper);padding:8px 12px;letter-spacing:.06em";
+      row.append(nin, mk);
+      nx.append(row);
+
+      const fsel = el("div", "fsel");
+      ["lower", "back", "push"].forEach((f) => {
+        const b = el("button", null, kFocus(f));
+        b.setAttribute("aria-pressed", f === newFocus);
+        b.onclick = () => {
+          newFocus = f;
+          fsel.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+        };
+        fsel.append(b);
+      });
+      nx.append(fsel);
+      wrap.append(nx);
+
+      mk.onclick = async () => {
+        const name = nin.value.trim();
+        if (!name) { toast("종목 이름을 입력해 주세요.", true); return; }
+        if (pickable().some((x) => x.name === name)) {
+          toast("같은 이름의 종목이 이미 있어요.", true); return;
+        }
+        mk.disabled = true; mk.innerHTML = '<span class="spin"></span>';
+        const ex = await createCustom(name, newFocus);
+        mk.disabled = false; mk.textContent = "만들기";
+        if (ex) { nin.value = ""; addPicked(ex); }
+      };
+    } else if (S.noCustomTable) {
+      const w2 = el("div", "msg err");
+      w2.style.fontSize = ".76em";
+      w2.innerHTML = "새 종목을 만들려면 <code>supabase/migration_custom_exercises.sql</code> 을 " +
+        "한 번 실행해 주세요.";
+      wrap.append(w2);
+    }
+
+    const acts = el("div", "acts");
+    const no = el("button", null, "닫기");
+    no.onclick = close;
+    acts.append(no);
+    wrap.append(acts);
+
     document.body.append(bg, wrap);
+    draw();
+    setTimeout(() => srch.focus(), 30);
+  }
+
+  async function createCustom(name, focus) {
+    const id = "custom_" + Date.now().toString(36);
+    const { error } = await S.sb.from("custom_exercises")
+      .insert({ id, user_id: S.user.id, name, focus, pattern: "custom", equipment: "custom" });
+    if (error) { toast("종목 만들기 실패: " + error.message, true); return null; }
+    const ex = { id, name, focus, pattern: "custom", equipment: "custom",
+                 hidden: false, from_history: false, mine: true };
+    S.custom.push(ex);
+    toast(`'${name}' 종목을 만들었어요.`);
+    return ex;
+  }
+
+  async function renameCustom(ex, after) {
+    const name = (prompt("새 이름", ex.name) || "").trim();
+    if (!name || name === ex.name) return;
+    if (pickable().some((x) => x.id !== ex.id && x.name === name)) {
+      toast("같은 이름의 종목이 이미 있어요.", true); return;
+    }
+    const { error } = await S.sb.from("custom_exercises").update({ name }).eq("id", ex.id);
+    if (error) { toast("이름 변경 실패: " + error.message, true); return; }
+    ex.name = name;
+    toast("이름을 바꿨어요.");
+    if (after) after();
+    renderToday();
+  }
+
+  async function deleteCustom(ex, after) {
+    // 이미 기록에 쓰인 종목은 지우면 그 기록의 종목 이름이 사라진다 → 목록에서만 숨긴다
+    const used = S.history.some((w) => w.exercises.some((e) => e.exercise_id === ex.id));
+    const msg = used
+      ? `'${ex.name}' 은 이미 기록에 쓰였어요.\n목록에서만 감출까요? (지난 기록은 그대로 남습니다)`
+      : `'${ex.name}' 을 삭제할까요?`;
+    if (!confirm(msg)) return;
+
+    if (used) {
+      const { error } = await S.sb.from("custom_exercises").update({ hidden: true }).eq("id", ex.id);
+      if (error) { toast("숨기기 실패: " + error.message, true); return; }
+      ex.hidden = true;
+      toast("목록에서 감췄어요. 지난 기록은 그대로예요.");
+    } else {
+      const { error } = await S.sb.from("custom_exercises").delete().eq("id", ex.id);
+      if (error) { toast("삭제 실패: " + error.message, true); return; }
+      S.custom = S.custom.filter((x) => x.id !== ex.id);
+      toast("삭제했어요.");
+    }
+    if (after) after();
   }
 
   // ---------------------------------------------------------

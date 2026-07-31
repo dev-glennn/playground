@@ -30,6 +30,9 @@
   --fs:15.5px; --w:400px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+/* 더블탭 확대만 막는다. 핀치 줌은 남겨둬야 필요할 때 키워 볼 수 있다.
+   (viewport 에 user-scalable=no 를 넣으면 핀치까지 막혀 접근성이 나빠진다) */
+html{touch-action:manipulation}
 html,body{margin:0;padding:0}
 body{
   background:#0e1116; color:var(--ink);
@@ -126,8 +129,10 @@ hr.rule.dbl{border:0;border-top:1px solid var(--line);border-bottom:1px solid va
 .setline.warm{color:var(--ink-2)}
 .setline.done{color:var(--hi)}
 
+/* iOS 는 16px 미만 입력 칸을 탭하면 화면을 자동 확대한다 */
+input,select,textarea{font-size:max(16px,1em)}
 input.num{width:3.5em;background:transparent;border:0;border-bottom:1px dotted var(--line);
-          text-align:right;font-family:var(--disp);font-size:1em;padding:2px 1px;
+          text-align:right;font-family:var(--disp);font-size:max(16px,1em);padding:2px 1px;
           font-variant-numeric:tabular-nums;-moz-appearance:textfield}
 input.num::-webkit-outer-spin-button,input.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 input.num:focus{outline:0;border-bottom:1px solid var(--ink);background:var(--paper-2)}
@@ -212,6 +217,21 @@ input.num:focus{outline:0;border-bottom:1px solid var(--ink);background:var(--pa
 .lb.cardio{color:var(--f-cardio);background:var(--f-cardio-bg)}
 .cell .more{font-size:.6em;color:var(--ink-3);text-align:center;line-height:1.3}
 
+/* 날짜 옮기기 — 롱프레스 드래그 */
+.cell.has{cursor:pointer;position:relative}
+body.dragging{cursor:grabbing}
+body.dragging .grid{touch-action:none}
+body.dragging .cell{transition:none}
+.cell.drag-src{opacity:.35;border-color:var(--ink);border-style:solid}
+.cell.drop-ok{border:2px solid var(--hi);background:var(--hi-bg)}
+.cell.drop-no{border:2px solid var(--warn);background:var(--warn-bg)}
+.cell.drop-ow{border:2px dashed var(--warn);background:var(--warn-bg)}
+.dragghost{position:fixed;z-index:30;pointer-events:none;background:var(--paper);
+  border:1px solid var(--ink);padding:2px 6px;font-size:.72em;letter-spacing:.02em;
+  box-shadow:0 3px 10px #0006;white-space:nowrap}
+.draghint{font-family:var(--body);font-size:.76em;color:var(--ink-3);text-align:center;
+  margin:5px 0 0}
+
 /* 월 선택 */
 .mpick{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:9px 0 2px}
 .mpick button{border:1px solid var(--line);padding:7px 0;font-size:.88em;color:var(--ink-2)}
@@ -238,6 +258,38 @@ input.num:focus{outline:0;border-bottom:1px solid var(--ink);background:var(--pa
 .trend .d{font-size:.8em;flex:none}
 .up{color:var(--hi)} .down{color:var(--warn)}
 svg.spark{display:block;width:100%;height:34px;overflow:visible;margin:2px 0}
+
+/* 종목 추가 · 검색 */
+.modal{position:fixed;left:12px;right:12px;top:8%;z-index:20;max-width:400px;margin:0 auto;
+       background:var(--paper);color:var(--ink);padding:16px 15px;border:1px solid var(--ink);
+       max-height:84vh;display:flex;flex-direction:column}
+.modal .mt{letter-spacing:.12em;margin:0 0 9px;text-align:center}
+.modal .srch{width:100%;background:var(--paper-2);border:1px solid var(--line);
+             padding:9px 10px;font-family:var(--disp)}
+.modal .srch:focus{outline:0;border-color:var(--ink)}
+.modal .cnt{font-size:.72em;color:var(--ink-3);text-align:right;margin:3px 0 0}
+.exlist{overflow-y:auto;flex:1;min-height:120px;margin-top:4px;
+        border-top:1px dashed var(--line)}
+.exlist button{display:flex;width:100%;align-items:baseline;gap:6px;text-align:left;
+               padding:7px 2px;border-bottom:1px dashed var(--line)}
+.exlist button:active{background:var(--paper-2)}
+.exlist button .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.exlist button .mt2{flex:none;font-size:.7em;color:var(--ink-3);letter-spacing:.03em}
+.exlist button .bd{flex:none;font-size:.68em;border:1px solid var(--line);padding:0 4px;
+                   color:var(--ink-2)}
+.exlist button .bd.mine{border-color:var(--f-back);color:var(--f-back)}
+.exlist .none{padding:16px 2px;text-align:center;color:var(--ink-3);font-size:.86em}
+.exlist .rowact{display:flex;gap:4px;flex:none}
+.exlist .rowact span{font-size:.72em;border:1px solid var(--line);padding:1px 5px;color:var(--ink-3)}
+
+.newex{border-top:1px dashed var(--line);padding-top:9px;margin-top:6px}
+.newex .row{display:flex;gap:5px;align-items:center}
+.newex .row input{flex:1;background:var(--paper-2);border:1px solid var(--line);padding:8px 9px;
+                  font-family:var(--disp)}
+.newex .fsel{display:flex;gap:4px;margin-top:5px}
+.newex .fsel button{flex:1;border:1px solid var(--line);padding:6px 2px;font-size:.8em;
+                    color:var(--ink-2)}
+.newex .fsel button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 
 /* 로그인 · 상태 */
 .field{margin-top:9px}

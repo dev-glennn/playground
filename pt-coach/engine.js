@@ -239,6 +239,8 @@
 
   function scoreCandidates(slot, ctx) {
     const { catalog, focus, recent, lastDone, today, rng, allowExtra, used, pinned } = ctx;
+    // '직접 추가'처럼 패턴이 없는 슬롯은 교체 후보를 뽑을 수 없다
+    if (!slot || !Array.isArray(slot.patterns) || !slot.patterns.length) return [];
     const okFocus = new Set([focus].concat(slot.alsoFocus || []));
     return catalog
       .filter((x) => okFocus.has(x.focus) && slot.patterns.includes(x.pattern) && !used.has(x.id))
