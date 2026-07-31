@@ -879,7 +879,7 @@
     const clash = S.history.find((x) => x.date === toDate && x.source === w.source && x.id !== w.id);
     const label = `${kDate(w.date)} ${kFocus(w.focus)} ${SRC_LABEL[w.source]}`;
     const msg = clash
-      ? `${toDate} 에 이미 ${SRC_LABEL[w.source]} 기록이 있어요.\n` +
+      ? `${kDate(toDate)} 에 이미 ${SRC_LABEL[w.source]} 기록이 있어요.\n` +
         `덮어쓸까요?\n\n옮길 것: ${label}\n지워질 것: ${kDate(clash.date)} ${kFocus(clash.focus)}`
       : `${label} 을\n${kDate(toDate)} 로 옮길까요?`;
     if (!confirm(msg)) return false;
@@ -1025,6 +1025,9 @@
 
     box.append(dowRow());
     box.append(calGrid(S.calMonth, byDate, { interactive: true }));
+    if (byDate.size) {
+      box.append(el("p", "draghint", "기록이 있는 칸을 길게 눌러 다른 날짜로 끌어다 놓을 수 있어요"));
+    }
     box.append(el("hr", "rule"));
     monthTotals(S.calMonth, byDate).forEach((x) => box.append(x));
 
@@ -1060,6 +1063,7 @@
         (interactive && isoDt === S.calSel ? " sel" : ""));
       cell.append(el("div", "dnum", String(dt.getDate())));
 
+      if (!out) cell.dataset.date = isoDt;
       const list = out ? null : byDate.get(isoDt);
       if (list && list.length) {
         cell.classList.add("has");
@@ -1070,12 +1074,100 @@
           cell.setAttribute("role", "button");
           cell.setAttribute("aria-label", `${dt.getMonth() + 1}월 ${dt.getDate()}일 ` +
             labels.map(kFocus).join(", "));
-          cell.onclick = () => { S.calSel = S.calSel === isoDt ? null : isoDt; renderLog(); };
+          cell.onclick = () => {
+            if (cell.dataset.suppress) { delete cell.dataset.suppress; return; }
+            S.calSel = S.calSel === isoDt ? null : isoDt; renderLog();
+          };
+          attachLongPressDrag(cell, isoDt, list);
         }
       }
       grid.append(cell);
     }
     return grid;
+  }
+
+  // 길게 눌러 다른 날짜 칸으로 끌어다 놓기.
+  // 스크롤과 헷갈리지 않게 420ms 유지 + 8px 이내 움직임일 때만 드래그로 본다.
+  function attachLongPressDrag(cell, isoDt, list) {
+    let timer = null, sx = 0, sy = 0;
+
+    const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
+
+    cell.addEventListener("pointerdown", (ev) => {
+      if (ev.button) return;
+      sx = ev.clientX; sy = ev.clientY;
+      clear();
+      timer = setTimeout(() => {
+        timer = null;
+        if (list.length !== 1) {
+          toast("이 날은 기록이 2개예요. 칸을 눌러 상세에서 옮겨주세요.", true);
+          return;
+        }
+        beginDrag(list[0], isoDt, cell, sx, sy);
+      }, 420);
+    });
+    cell.addEventListener("pointermove", (ev) => {
+      if (timer && (Math.abs(ev.clientX - sx) > 8 || Math.abs(ev.clientY - sy) > 8)) clear();
+    });
+    cell.addEventListener("pointerup", clear);
+    cell.addEventListener("pointercancel", clear);
+    cell.addEventListener("pointerleave", clear);
+  }
+
+  function beginDrag(w, fromDate, cell, x, y) {
+    if (S.drag) return;
+    const ghost = el("div", "dragghost", `${kFocus(w.focus)} ${SRC_LABEL[w.source]}`);
+    document.body.append(ghost);
+    const place = (px, py) => {
+      ghost.style.left = (px + 12) + "px";
+      ghost.style.top = (py - 10) + "px";
+    };
+    place(x, y);
+
+    S.drag = { w, fromDate, cell, ghost, over: null };
+    document.body.classList.add("dragging");
+    cell.classList.add("drag-src");
+    if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) {} }
+
+    const onMove = (ev) => {
+      ev.preventDefault();
+      place(ev.clientX, ev.clientY);
+      const el2 = document.elementFromPoint(ev.clientX, ev.clientY);
+      const tgt = el2 && el2.closest ? el2.closest(".cell") : null;
+      if (S.drag.over && S.drag.over !== tgt) {
+        S.drag.over.classList.remove("drop-ok", "drop-no", "drop-ow");
+      }
+      S.drag.over = tgt;
+      if (!tgt) return;
+      tgt.classList.remove("drop-ok", "drop-no", "drop-ow");
+      const to = tgt.dataset.date;
+      if (!to || to === fromDate) return;                 // 원래 칸·달 밖
+      if (to > TODAY) { tgt.classList.add("drop-no"); return; }
+      const clash = S.history.some((v) => v.date === to && v.source === w.source && v.id !== w.id);
+      tgt.classList.add(clash ? "drop-ow" : "drop-ok");
+    };
+
+    const onUp = async (ev) => {
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", onUp);
+      document.body.classList.remove("dragging");
+      ghost.remove();
+      cell.classList.remove("drag-src");
+      const tgt = S.drag.over;
+      if (tgt) tgt.classList.remove("drop-ok", "drop-no", "drop-ow");
+      S.drag = null;
+      // 드래그 직후 따라오는 click 을 삼킨다
+      cell.dataset.suppress = "1";
+      setTimeout(() => { delete cell.dataset.suppress; }, 350);
+
+      const to = tgt && tgt.dataset.date;
+      if (to && to !== fromDate) await moveSession(w, to);
+    };
+
+    document.addEventListener("pointermove", onMove, { passive: false });
+    document.addEventListener("pointerup", onUp);
+    document.addEventListener("pointercancel", onUp);
   }
 
   function monthStats(ym, byDate) {
@@ -1187,6 +1279,9 @@
       const sh = el("div", "sh");
       dayLabels([w]).forEach((f) => sh.append(el("span", "lb " + FOCUS_KEYS[f], kFocus(f))));
       sh.append(el("span", "src", w.source === "pt" ? "PT 수업" : "개인"));
+      const mv = el("button", "mvbtn", "날짜 옮기기");
+      mv.onclick = () => openMoveDialog(w);
+      sh.append(mv);
       sec.append(sh);
 
       for (const e of w.exercises) {
