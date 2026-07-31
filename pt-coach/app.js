@@ -1093,6 +1093,11 @@
 
     const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
 
+    // 길게 누르면 브라우저가 텍스트 선택·기본 드래그·컨텍스트 메뉴를 띄운다. 전부 막는다.
+    cell.addEventListener("dragstart", (ev) => ev.preventDefault());
+    cell.addEventListener("selectstart", (ev) => ev.preventDefault());
+    cell.addEventListener("contextmenu", (ev) => ev.preventDefault());
+
     cell.addEventListener("pointerdown", (ev) => {
       if (ev.button) return;
       sx = ev.clientX; sy = ev.clientY;
@@ -1114,6 +1119,13 @@
     cell.addEventListener("pointerleave", clear);
   }
 
+  function clearSelection() {
+    const sel = window.getSelection && window.getSelection();
+    if (!sel) return;
+    if (sel.removeAllRanges) sel.removeAllRanges();
+    else if (sel.empty) sel.empty();
+  }
+
   function beginDrag(w, fromDate, cell, x, y) {
     if (S.drag) return;
     const ghost = el("div", "dragghost", `${kFocus(w.focus)} ${SRC_LABEL[w.source]}`);
@@ -1127,10 +1139,12 @@
     S.drag = { w, fromDate, cell, ghost, over: null };
     document.body.classList.add("dragging");
     cell.classList.add("drag-src");
+    clearSelection();
     if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) {} }
 
     const onMove = (ev) => {
       ev.preventDefault();
+      clearSelection();          // 드래그 중 생기는 선택을 계속 걷어낸다
       place(ev.clientX, ev.clientY);
       const el2 = document.elementFromPoint(ev.clientX, ev.clientY);
       const tgt = el2 && el2.closest ? el2.closest(".cell") : null;
@@ -1154,6 +1168,7 @@
       document.body.classList.remove("dragging");
       ghost.remove();
       cell.classList.remove("drag-src");
+      clearSelection();
       const tgt = S.drag.over;
       if (tgt) tgt.classList.remove("drop-ok", "drop-no", "drop-ow");
       S.drag = null;
